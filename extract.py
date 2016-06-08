@@ -36,7 +36,7 @@ def saveData(file, saveDict, compact = 0):
 
 # extracts the sluiceId, the sluice phrase,
 # the full phrase, and the antecedent itself
-def dataExtract(file, examples):
+def dataExtract(examples):
 	saveDict = {}
 
 	for k in examples:
@@ -77,21 +77,19 @@ def dataExtract(file, examples):
 			cleanText = cleanText[0:needle] + cleanText[needle + len(saveDict[k]["sluice"]):]
 		saveDict[k]["cleanText"] = cleanText
 	
-	saveData(file, saveDict, 1)
 	return saveDict
 
 
 
-def trainExtract(fileIn, fileOut, examples):
+def trainExtract(examples):
 	inDict = {};
 	outDict = {}
 	for k in examples:
-		inDict[k] = examples[k]["antecedent"]
+		inDict[k] = examples[k]["antecedent"].strip()
 	for k in examples:
-		outDict[k] = examples[k]["cleanText"]
+		outDict[k] = examples[k]["cleanText"].strip()
 
-	saveData(fileIn, inDict, 1)
-	saveData(fileOut, outDict, 1)
+	return inDict, outDict
 
 
 ####### ---->
@@ -111,6 +109,9 @@ if __name__ == '__main__':
     # examples after which we prepare
     # the data for training
 	examples = loadData(args.dataref)
-	formattedExamples = dataExtract("data/formatted.jsons", examples)
-	trainExtract = trainExtract("data/train-pos", "data/train-neg", formattedExamples)
+	formattedExamples = dataExtract(examples)
+	inDict, outDict = trainExtract(formattedExamples)
+
+	saveData("data/train-pos", inDict, 1)
+	saveData("data/train-neg", outDict, 1)
 
