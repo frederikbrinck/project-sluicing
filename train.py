@@ -2,6 +2,7 @@
 import json
 import subprocess
 import re
+import copy
 import nltk
 from collections import defaultdict, Counter
 
@@ -32,6 +33,7 @@ def saveData(file, saveDict, compact = 0):
 		# on a separate line
 		if (compact):
 			for k in saveDict:
+				saveDict[k]["key"] = k
 				out = json.dumps(saveDict[k])
 				fp.write(out + "\n")
 		else:
@@ -185,8 +187,8 @@ if __name__ == '__main__':
 	# create probability distributions
 	# over the ngrams
 	table = {}
-	table["bigrams"] = getProbabilityDistribution(tablePos["bigrams"], tableNeg["bigrams"])
-	table["trigrams"] = getProbabilityDistribution(tablePos["trigrams"], tableNeg["trigrams"])
-	table["fourgrams"] = getProbabilityDistribution(tablePos["fourgrams"], tableNeg["fourgrams"])
-	saveData("data/table.pos", table)
+	table["2"] = getProbabilityDistribution(tablePos["bigrams"], tableNeg["bigrams"])
+	table["3"] = getProbabilityDistribution(tablePos["trigrams"], tableNeg["trigrams"])
+	table["4"] = getProbabilityDistribution(tablePos["fourgrams"], tableNeg["fourgrams"])
+	saveData("data/table.pos", table, 1)
 
