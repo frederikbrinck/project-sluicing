@@ -3,6 +3,7 @@ import json
 import subprocess
 import re
 import copy
+import os
 import nltk
 from collections import defaultdict, Counter
 
@@ -189,3 +190,7 @@ if __name__ == '__main__':
 	table["4"] = getProbabilityDistribution(tablePos["fourgrams"], tableNeg["fourgrams"])
 	saveData("data/table.pos", table, 1)
 
+	os.remove(filePos + ".out")
+	os.remove(fileNeg + ".out")
+	os.remove(filePos)
+	os.remove(fileNeg)

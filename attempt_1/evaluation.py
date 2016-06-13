@@ -34,16 +34,12 @@ def preprocessData(file, out):
 	# write all data into a file in text format
 	# with one example per line
 	antecedents = []
-	i = 0
 	with open(out, "w+") as fdout:
 		with open(file, "r") as fd:
 			for line in fd:
 				data = json.loads(line)
 				antecedents.append(data["antecedent"])
 				fdout.write(data["text"] + "\n.\n")
-				i += 1
-				if (i > 4):
-					break
 
 	with open(out, "r") as fdout:
 		# parse the examples with corenlp to produce
