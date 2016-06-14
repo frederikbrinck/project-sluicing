@@ -4,7 +4,9 @@ import re
 from nltk.tree import *
 from nltk import pos_tag
 import nltk
+import random
 from collections import defaultdict, Counter
+import numpy as np, numpy.random
 
 
 
@@ -41,26 +43,54 @@ def saveData(file, saveDict, compact = 0):
 
 
 
+# return the sluice of the given
+# string, if any
+def getSluice(haystack):
+	sluiceRe = r'(how far|how long|how many|how much|how come|how old|when|where|why|how|what|which|who|whom|whose)'
+	search = re.search(sluiceRe, haystack, re.I)
+	if search:
+		return search.group(1)
+	else:
+		return None
+
+
+
 # get ngrams of all antecedents
 def getNgrams(antecedents, least, highest):
 	# create list and iterate 
 	# over tags
 	ngramlist = {}
 	for key in antecedents:
-		# get pos tags
-		tags = [m[1] for m in antecedents[key]]
+		# get pos tags and sluice
+		tags = [m[1] for m in antecedents[key]["tags"]]
+		sluice = antecedents[key]["sluice"]
 
 		# make ngrams and add them to 
-		# the dictionary as lists
+		# the dictionary as lists categorised
+		# by their sluices
 		for i in range(least, highest):
 			if str(i) not in ngramlist:
-				ngramlist[str(i)] = []
+				ngramlist[str(i)] = {}
+
+			if sluice not in ngramlist[str(i)]:
+				ngramlist[str(i)][sluice] = []
 
 			for gram in list(nltk.ngrams(tags, i)):
-				ngramlist[str(i)].append(gram)
+				ngramlist[str(i)][sluice].append(gram)
 
 	return ngramlist
 
+
+
+def getExamples(examples, start, end):
+	i = 0
+	batch = {}
+	for k in examples.keys():
+		if i >= start and i < end:
+			batch[k] = examples[k]
+		i += 1
+
+	return batch
 
 
 # count ngrams in a dictionary
@@ -69,24 +99,33 @@ def getProbabilities(ngrams):
 	counts = {}
 	for ngram in ngrams:
 		counts[ngram] = {}
-		counts[ngram]["length"] = 0
-		for tags in ngrams[ngram]:
-			entry = " ".join(tags)
 
-			if entry not in counts[ngram]:
-				counts[ngram][entry] = 1
-			else:
-				counts[ngram][entry] += 1
+		for sluice in ngrams[ngram]:
+			if sluice not in counts[ngram]:
+				counts[ngram][sluice] = {}
+				counts[ngram][sluice]["length"] = 0
 
-			counts[ngram]["length"] += 1
+			for tags in ngrams[ngram][sluice]:
+				entry = " ".join(tags)
+
+				if entry not in counts[ngram][sluice]:
+					counts[ngram][sluice][entry] = 1
+				else:
+					counts[ngram][sluice][entry] += 1
+
+				counts[ngram][sluice]["length"] += 1
 
 	# calculate probabilities
 	probabilities = {}
 	for ngram in ngrams:
 		probabilities[ngram] = {}
-		for entry in counts[ngram]:
-			if entry != "length":
-				probabilities[ngram][entry] = float(counts[ngram][entry]) / counts[ngram]["length"]
+		for sluice in counts[ngram]:
+			if sluice not in probabilities[ngram]:
+				probabilities[ngram][sluice] = {}
+
+			for entry in counts[ngram][sluice]:
+				if entry != "length":
+					probabilities[ngram][sluice][entry] = float(counts[ngram][sluice][entry]) / counts[ngram][sluice]["length"]
 
 	return probabilities
 
@@ -94,9 +133,8 @@ def getProbabilities(ngrams):
 
 # extracts the sluiceId, the sluice phrase,
 # the full phrase, and the antecedent itself
-def antecedentExtract(examples):
+def getAntecedents(examples):
 	antecedentDictionary = {}
-
 	for k in examples:
 		antecedentDictionary[k] = {}
 
@@ -104,9 +142,22 @@ def antecedentExtract(examples):
 		for i in range(len(examples[k])):
 			cEx = examples[k][i]
 			if (cEx["isAntecedent"]): 
-				antecedentDictionary[k] = pos_tag(cEx["text"])
+				antecedentDictionary[k]["tags"] = pos_tag(cEx["text"])
+				if (getSluice(cEx["sluiceGovVPText"]) == None):
+					antecedentDictionary[k]["sluice"] = cEx["sluiceGovVPText"]
+				else: 
+					antecedentDictionary[k]["sluice"] = getSluice(cEx["sluiceGovVPText"])
 	
 	return antecedentDictionary
+
+
+
+def pseudotrainData(examples, ngramLow, ngramHigh):
+	antecedents = getAntecedents(examples)
+	ngrams = getNgrams(antecedents, ngramLow, ngramHigh + 1)
+	probabilities = getProbabilities(ngrams)
+
+	return probabilities
 
 
 
@@ -116,7 +167,7 @@ def antecedentExtract(examples):
 def predictData(examples, table, least, highest, coefs, verbose = 1):
 	correctlyPredicted = 0.0
 
-	if sum(coefs) != 1:
+	if sum(coefs) > 1.1 and sum(coefs) < 0.9:
 		print "Coefficients don't sum to one"
 		return
 
@@ -128,17 +179,23 @@ def predictData(examples, table, least, highest, coefs, verbose = 1):
 		realAntecedent = ""
 
 		for example in examples[sluiceId]:
-			# make tree to get pos tags
+			# get candidate and correct
+			# antecedent
 			candidate = example["text"]
 			if example["isAntecedent"]:
 				realAntecedent = candidate
 
+			# extract sluice and pos tags
 			tags = [m[1] for m in pos_tag(candidate)]
+			sluice = getSluice(example["sluiceGovVPText"])
+			if not sluice:
+				sluice = example["sluiceGovVPText"]
 
+			# calculate probabilities
 			tempProbability = 0
 			coef = 1.0 / (highest - least)
 			for i in range(least, highest):
-				tempProbability += coefs[i - least] * computeProbability(i, tags, table)
+				tempProbability += coefs[i - least] * computeProbability(i, tags, sluice, table)
 
 			if tempProbability > predictedProbability:
 				predictedAntecedent = candidate
@@ -155,14 +212,14 @@ def predictData(examples, table, least, highest, coefs, verbose = 1):
 			print "Candidate: ", predictedAntecedent
 			print "Actual: ", realAntecedent  
 
-	return correctlyPredicted / len(examples)
+	return correctlyPredicted / len(examples), correctlyPredicted, len(examples) - correctlyPredicted
 
 
 
 # computes the n-gram probability
 # of a given sequence of tags given
 # a table
-def computeProbability(n, tags, table):
+def computeProbability(n, tags, sluice, table):
 	result = 0.0
 	count = 0
 
@@ -170,8 +227,16 @@ def computeProbability(n, tags, table):
 	# see how many match in the table
 	ngrams = list(nltk.ngrams(tags, n))
 	for ngram in ngrams:
-		result += table[str(n)].get(" ".join(list(ngram)), 0.0)
 		count += 1
+		if sluice not in table[str(n)]:
+			sluiceKey = random.choice(table[str(n)].keys())
+			while sluiceKey == "key":
+				sluiceKey = random.choice(table[str(n)].keys())
+
+			result += table[str(n)][sluiceKey].get(" ".join(list(ngram)), 0.0)
+		else:
+			result += table[str(n)][sluice].get(" ".join(list(ngram)), 0.0)
+		
 
 	# return a pseudoprobability which
 	# is the average probability of 
@@ -198,33 +263,63 @@ if __name__ == '__main__':
 	parser.add_argument('-m', '--model', metavar='model', type=str, help='Reference to an existing model of probabilities')
 	parser.add_argument('-s', '--save', metavar='save', type=str, help='Save the model to the given distination generated in this pass')
 	parser.add_argument('-v', '--verbose', metavar='verbose', type=int, help='Print details of classification')
+	parser.add_argument('-k', '--kfold', metavar='kfold', type=int, help='Run a crossvalidation over k group')
 
 	args = parser.parse_args()
 
 	lowestNgram = 1
 	highestNgram = 3
-	coefficients = [0.1, 0.2, 0.7]
 
     # load data and format all
     # examples after which we prepare
     # the data for training
 	examples = loadData(args.dataref)
 
-	# if model has been given, use that
-	if args.model:
+	# use kfold validation if asked for
+	if args.kfold > 0:
+		size = len(examples) / args.kfold
+		coefficients = np.random.dirichlet(np.ones(highestNgram + 1 - lowestNgram), size = 1)[0]
+		accuracies = []
+
+		# eye candy
+		print "Running k-fold validation with coefficients ", coefficients
+		print "Number of runs:", args.kfold, "Batch size:",size
+		print "-----------------------------------------------------------"
+		
+		# split data set into different sizes, and run the
+		# prediction
+		for i in range(args.kfold):
+			test = getExamples(examples, i * size, (i + 1) * size)
+			if i == 0:
+				train = getExamples(examples, (i + 1) * size, len(examples.keys()))
+			elif i + 1 == args.kfold:
+				train = getExamples(examples, 0, i * size)
+			else:
+				train = {}
+				train.update(getExamples(examples, 0, i * size))
+				train.update(getExamples(examples, (i + 1) * size, len(examples.keys())))
+
+			probabilities = pseudotrainData(train, lowestNgram, highestNgram)
+			accuracy, correct, false = predictData(test, probabilities, lowestNgram, highestNgram + 1, coefficients, args.verbose)
+			accuracies.append(accuracy)
+			print "k-fold (" + str(i) + "):",  str(accuracy), "(t: " + str(correct) + ", f: " + str(false) + ")"
+
+		print "-------------"
+		print sum(accuracies) / len(accuracies)
+
+	# if a model has been given, use that
+	elif args.model:
 		probabilities = loadData(args.model, "key")
 		for i in range(lowestNgram, highestNgram + 1):
 			probabilities[str(i)] = probabilities[str(i)][0]
-	# calculate new model
-	else:
-		antecedents = antecedentExtract(examples)
-		ngrams = getNgrams(antecedents, lowestNgram, highestNgram + 1)
-		probabilities = getProbabilities(ngrams)
 
-		# save the model upon request
-		if args.save:
-			saveData(args.save, probabilities, 1)
+		# do the prediction
+		for i in range(50):
+			coefficients = np.random.dirichlet(np.ones(highestNgram + 1 - lowestNgram), size = 1)[0]
+			accuracy, correct, false = predictData(examples, probabilities, lowestNgram, highestNgram + 1, coefficients, args.verbose)
+			print "Coefs", coefficients, "- Accuracy", str(accuracy), "(t: " + str(correct) + ", f: " + str(false) + ")"
 
-	# do the prediction
-	accuracy = predictData(examples, probabilities, lowestNgram, highestNgram + 1, coefficients, args.verbose)
-	print "Acc. ", accuracy
+	# calculate new model and save it
+	elif args.save:
+		probabilities = pseudotrainData(examples, lowestNgram, highestNgram)
+		saveData(args.save, probabilities, 1)
