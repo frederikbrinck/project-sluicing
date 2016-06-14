@@ -1,8 +1,0 @@
-Sentence #1 (6 tokens):
-there will be more games here
-[Text=there CharacterOffsetBegin=0 CharacterOffsetEnd=5 PartOfSpeech=RB]
-[Text=will CharacterOffsetBegin=6 CharacterOffsetEnd=10 PartOfSpeech=MD]
-[Text=be CharacterOffsetBegin=11 CharacterOffsetEnd=13 PartOfSpeech=VB]
-[Text=more CharacterOffsetBegin=14 CharacterOffsetEnd=18 PartOfSpeech=RBR]
-[Text=games CharacterOffsetBegin=19 CharacterOffsetEnd=24 PartOfSpeech=NNS]
-[Text=here CharacterOffsetBegin=25 CharacterOffsetEnd=29 PartOfSpeech=RB]
