@@ -1,8 +1,14 @@
+# feature script that models
+# antecedent detection through 
+# ngram probabilities in a
+# BLEU-like
+
 import sys
 from nltk import pos_tag
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
-from lib.data import loadData, splitData 
+
+from lib.data import loadData
 from lib.functions import getSluice
 from lib.probability import computeProbability
 
