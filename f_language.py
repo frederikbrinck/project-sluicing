@@ -2,10 +2,9 @@ import os
 import kenlm
 
 from nltk import pos_tag
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import LinearSVC
 
 from lib.data import loadData
+from lib.functions import kfoldValidation
 
 
 
@@ -78,51 +77,19 @@ if __name__ == '__main__':
 	parser.add_argument('dataref', metavar='dataref', type=str, help='Reference to the example file')
 	args = parser.parse_args()
 	
-	# load language model, data and prepare 
-	# runs
+	# load language model, and data
 	model = kenlm.Model('models/test.arpa')
 	examples = loadData(args.dataref)
-	overall = []
+	
+	# run 10-fold cross validation
+	# for each type of sentence length
+	# in the range and calculate the accuracy
 	kfold = 10
-
-	print "Running", str(kfold) + "-fold for each sentence length from 5 to 20"
-	print "-----------------------------------------------------------"
+	overall = []
 	for k in range(5,21):
-		# calculate how many predictions
-		# we had correct with cross-validation
 		dataX, dataY = extractProbabilities(examples, model, k)
-		size = len(dataX) / kfold
-		accuracies = []
-
-		for i in range(kfold):
-			testX = dataX[i * size : (i + 1) * size]
-			testY = dataY[i * size : (i + 1) * size]
-			if i == 0:
-				trainX = dataX[(i + 1) * size : len(dataX)]
-				trainY = dataY[(i + 1) * size : len(dataY)]
-			elif i + 1 == kfold:
-				trainX = dataX[0 : i * size]
-				trainY = dataY[0 : i * size]
-			else:
-				trainX = dataX[0 : i * size] + dataX[(i + 1) * size : len(dataX)]
-				trainY = dataY[0 : i * size] + dataY[(i + 1) * size : len(dataY)]
-
-			# get data and fit it
-			dataFit = OneVsRestClassifier(LinearSVC(random_state=0)).fit(trainX, trainY)
-
-			# calculate accuracy
-			prediction = dataFit.predict(testX)
-			correct = 0
-			for j in range(len(testY)):
-				if testY[j] == prediction[j]:
-					correct += 1
-			accuracy = float(correct)/len(testY)
-			accuracies.append(accuracy)
-			# print "k-fold (" + str(i) + "):",  str(accuracy), "(true: " + str(correct) + ", false: " + str(len(testY) - correct) + ")"
-
-		# print "-------------"
+		accuracies = kfoldValidation(kfold, dataX, dataY, True)
 		overall.append(sum(accuracies) / len(accuracies))
-		print "Length " + str(k) + ":", sum(accuracies) / len(accuracies)
-
-	print "-------------"
+	
+	print "-------"
 	print "Average score:", sum(overall) / len(overall)

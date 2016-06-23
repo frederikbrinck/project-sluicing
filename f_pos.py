@@ -5,11 +5,9 @@
 
 import sys
 from nltk import pos_tag
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import LinearSVC
 
 from lib.data import loadData
-from lib.functions import getSluice
+from lib.functions import getSluice, kfoldValidation
 from lib.probability import computeProbability
 
 
@@ -95,43 +93,8 @@ if __name__ == '__main__':
 	# get data and batch size
 	kfold = 10
 	examples = loadData(args.dataref)
-	size = len(examples) / kfold
 
-	# calculate how many predictions
-	# we had correct with cross-validation
-	print "Running", str(kfold) + "-fold validation"
-	print "-----------------------------------------------------------"
-	
-	# split data set into different sizes, and run the
-	# prediction
+	# get the data in the right format, and
+	# run a kfold validation
 	dataX, dataY = extractProbabilities(examples, args.datatable)
-	accuracies = []
-
-	for i in range(kfold):
-		testX = dataX[i * size : (i + 1) * size]
-		testY = dataY[i * size : (i + 1) * size]
-		if i == 0:
-			trainX = dataX[(i + 1) * size : len(dataX)]
-			trainY = dataY[(i + 1) * size : len(dataY)]
-		elif i + 1 == kfold:
-			trainX = dataX[0 : i * size]
-			trainY = dataY[0 : i * size]
-		else:
-			trainX = dataX[0 : i * size] + dataX[(i + 1) * size : len(dataX)]
-			trainY = dataY[0 : i * size] + dataY[(i + 1) * size : len(dataY)]
-
-		# get data and fit it
-		dataFit = OneVsRestClassifier(LinearSVC(random_state=0)).fit(trainX, trainY)
-
-		# calculate accuracy
-		prediction = dataFit.predict(testX)
-		correct = 0
-		for j in range(len(testY)):
-			if testY[j] == prediction[j]:
-				correct += 1
-		accuracy = float(correct)/len(testY)
-		accuracies.append(accuracy)
-		print "k-fold (" + str(i) + "):",  str(accuracy), "(true: " + str(correct) + ", false: " + str(len(testY) - correct) + ")"
-
-	print "-------------"
-	print sum(accuracies) / len(accuracies)
+	kfoldValidation(kfold, dataX, dataY, True)
