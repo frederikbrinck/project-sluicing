@@ -13,14 +13,5 @@ python features/f_language.py data/examples-test.jsons
 python features/f_pos.py data/examples-test.jsons --model models/table
 
 #---------------SLUICING---------------#
-# create table of probabilities
-python sluicing.py data/examples-test.jsons --save models/table
-
-# evaluate score for the given model 
-# using random coefficients
-python sluicing.py data/examples-test.jsons --model models/table
-
-# use cross validation for evaluating the model
-# created from examples-test.jsons by making
-# 10 groups of data
-python sluicing.py data/examples-test.jsons --kfold 10
+# run all features enabled in sluicing
+python sluicing.py data/examples-test.jsons 

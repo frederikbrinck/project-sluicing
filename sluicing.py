@@ -1,8 +1,54 @@
 #!/usr/bin/python
+import os
 import random
+import importlib
+
+import kenlm
 import numpy as np, numpy.random
+
 from lib.data import loadData, saveData, splitData, tableFromData, predictData
-from lib.functions import getAntecedents
+from lib.functions import getAntecedents, kfoldValidation
+
+
+
+# define a context manager to surpress 
+# function printing, taken from
+# http://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
+class surpressPrint(object):
+    def __init__(self):
+        # open a pair of null files
+        self.null_fds =  [os.open(os.devnull,os.O_RDWR) for x in range(2)]
+        # save the actual stdout (1) and stderr (2) file descriptors.
+        self.save_fds = (os.dup(1), os.dup(2))
+
+    def __enter__(self):
+        # assign the null pointers to stdout and stderr.
+        os.dup2(self.null_fds[0],1)
+        os.dup2(self.null_fds[1],2)
+
+    def __exit__(self, *_):
+        # re-assign the real stdout/stderr back to (1) and (2)
+        os.dup2(self.save_fds[0],1)
+        os.dup2(self.save_fds[1],2)
+        # close the null files
+        os.close(self.null_fds[0])
+        os.close(self.null_fds[1])
+
+
+
+# get maximum number of candidates
+# for one example over the full
+# training set
+def getMaxCandidates(examples):
+	currentMax = 0
+	for key in examples:
+		length = len(examples[key])
+		if length > currentMax:
+			currentMax = length
+
+	return currentMax
+
+
 
 ####### ---->
 ###			------------>
@@ -15,66 +61,48 @@ if __name__ == '__main__':
     # setup parser and parse args
 	parser = argparse.ArgumentParser(description='Extracts antecedent data and examples from the provided jsons file.')
 	parser.add_argument('dataref', metavar='dataref', type=str, help='Reference to the data file')
-	parser.add_argument('-m', '--model', metavar='model', type=str, help='Reference to an existing model of probabilities')
-	parser.add_argument('-s', '--save', metavar='save', type=str, help='Save the model to the given distination generated in this pass')
-	parser.add_argument('-v', '--verbose', metavar='verbose', type=int, help='Print details of classification')
-	parser.add_argument('-k', '--kfold', metavar='kfold', type=int, help='Run a crossvalidation over k group')
-
 	args = parser.parse_args()
 
-	ngramLow = 1
-	ngramHigh = 5
+	with surpressPrint():
+		modelFeatures = []
+		modelFeatures.append({ "active": 1, "feature":"f_pos", "args": ["models/table"] })
+		lmModel = kenlm.Model('models/test.arpa')
+		modelFeatures.append({ "active": 1, "feature":"f_language", "args": [lmModel, 10] })
 
-    # load data and format all
-    # examples after which we prepare
-    # the data for training
+    # load data from all active features
 	examples = loadData(args.dataref)
+	maxCandidates = getMaxCandidates(examples)
 
-	# use kfold validation if asked for
-	if args.kfold > 0:
-		size = len(examples) / args.kfold
-		coefficients = np.random.dirichlet(np.ones(ngramHigh + 1 - ngramLow), size = 1)[0]
-		accuracies = []
+	totalX = np.zeros((len(examples),0))
+	dataY = ""
+	for model in modelFeatures:
+		if model["active"]:
+			print 
+			print "----------------------------------"
+			print "Loading features from", model["feature"]
 
-		# eye candy
-		print "Running k-fold validation with coefficients", coefficients
-		print "Number of runs:", args.kfold, "Batch size:",size
-		print "-----------------------------------------------------------"
-		
-		# split data set into different sizes, and run the
-		# prediction
-		for i in range(args.kfold):
-			test = splitData(examples, i * size, (i + 1) * size)
-			if i == 0:
-				train = splitData(examples, (i + 1) * size, len(examples.keys()))
-			elif i + 1 == args.kfold:
-				train = splitData(examples, 0, i * size)
-			else:
-				train = {}
-				train.update(splitData(examples, 0, i * size))
-				train.update(splitData(examples, (i + 1) * size, len(examples.keys())))
+			# load feature data and print sample
+			path = "features." + model["feature"]
+			feature = importlib.import_module(path)
+			try:
+				maxFeatures = feature.featureNumber()
+				dataX, dataY = feature.extractFeatures(examples, *model["args"])
+			except error:
+				print "Error: Feature", model["feature"], "must contain function featureNumber() and extractFeatures(...).", error
+			print dataX[0]
+			print dataY[0]
 
-			probabilities = tableFromData(train, ngramLow, ngramHigh)
-			accuracy, correct, false = predictData(test, probabilities, ngramLow, ngramHigh + 1, coefficients, args.verbose)
-			accuracies.append(accuracy)
-			print "k-fold (" + str(i) + "):",  str(accuracy), "(t: " + str(correct) + ", f: " + str(false) + ")"
+			totalX = np.append(totalX, dataX, axis=1)
 
-		print "-------------"
-		print sum(accuracies) / len(accuracies)
+	# run kfold validation
+	print 
+	print "----------------------------------"
+	print "Running kfold validation on all features"
+	print "----------------------------------"
+	kfoldValidation(10, totalX.tolist(), dataY, True)
 
-	# if a model has been given, use that
-	elif args.model:
-		probabilities = loadData(args.model, "key")
-		for i in range(ngramLow, ngramHigh + 1):
-			probabilities[str(i)] = probabilities[str(i)][0]
 
-		# do the prediction
-		for i in range(50):
-			coefficients = np.random.dirichlet(np.ones(ngramHigh + 1 - ngramLow), size = 1)[0]
-			accuracy, correct, false = predictData(examples, probabilities, ngramLow, ngramHigh + 1, coefficients, args.verbose)
-			print "Coefs", coefficients, "- Accuracy", str(accuracy), "(t: " + str(correct) + ", f: " + str(false) + ")"
 
-	# calculate new model and save it
-	elif args.save:
-		probabilities = tableFromData(examples, ngramLow, ngramHigh)
-		saveData(args.save, probabilities, 1)
+
+
+

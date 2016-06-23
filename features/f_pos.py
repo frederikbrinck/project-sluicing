@@ -21,9 +21,17 @@ highestNgram = 3
 
 
 
+# return the number of features
+# added for this script per candidate
+def featureNumber():
+	global leastNgram, highestNgram
+	return highestNgram + 1 - leastNgram
+
+
+
 # use the data table to figure out the 
 # probabilities for all data
-def extractProbabilities(examples, table=False):
+def extractFeatures(examples, table=False):
 	global leastNgram, highestNgram
 
 	# load and format data correctly if
@@ -86,7 +94,10 @@ def extractProbabilities(examples, table=False):
 		 	for i in range((highestNgram - leastNgram + 1) * maxLength - len(example)):
 		 		example.append(0.0)
 	
-	return dataProbabilities, dataY, probabilities
+	if table:
+		return dataProbabilities, dataY
+	else:
+		return dataProbabilities, dataY, probabilities
 
 
 
@@ -112,9 +123,12 @@ if __name__ == '__main__':
 
 	# get the data in the right format, and
 	# run a kfold validation
-	dataX, dataY, probabilities = extractProbabilities(examples, args.model)
-	kfoldValidation(kfold, dataX, dataY, True)	
+	if args.model:
+		dataX, dataY = extractFeatures(examples, args.model)
+	else:
+		dataX, dataY, probabilities = extractFeatures(examples, args.model)
+		# save data if required
+		if args.save and not args.model:
+			saveData(args.save, probabilities, 1)
 
-	# save data if required
-	if args.save and not args.model:
-		saveData(args.save, probabilities, 1)
+	kfoldValidation(kfold, dataX, dataY, True)	

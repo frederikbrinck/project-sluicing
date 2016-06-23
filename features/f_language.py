@@ -18,9 +18,16 @@ from lib.functions import kfoldValidation
 
 
 
+# return the number of features
+# added for this script per candidate
+def featureNumber():
+	return 1
+
+
+
 # use the data table to figure out the 
 # probabilities for all data
-def extractProbabilities(examples, model, n):
+def extractFeatures(examples, model, n):
 
 	# run over all examples counting
 	# the maximum length to allow
@@ -97,7 +104,7 @@ if __name__ == '__main__':
 	kfold = 10
 	overall = []
 	for k in range(5,21):
-		dataX, dataY = extractProbabilities(examples, model, k)
+		dataX, dataY = extractFeatures(examples, model, k)
 		accuracies = kfoldValidation(kfold, dataX, dataY, True)
 		overall.append(sum(accuracies) / len(accuracies))
 	
