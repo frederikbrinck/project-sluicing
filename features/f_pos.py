@@ -4,27 +4,41 @@
 # BLEU-like
 
 import sys
+# import parent libraries
+sys.path.insert(0, '.')
+
 from nltk import pos_tag
 
-from lib.data import loadData
+from lib.data import loadData, saveData, tableFromData
 from lib.functions import getSluice, kfoldValidation
 from lib.probability import computeProbability
 
 
 
+# globals
+leastNgram = 1
+highestNgram = 3
+
+
+
 # use the data table to figure out the 
 # probabilities for all data
-def extractProbabilities(examples, table):
-	# load and format data correctly
-	probabilities = loadData(table, "key")
-	leastNgram = 1
-	highestNgram = 3
-	for i in range(leastNgram, highestNgram + 1):
-		try:
-			probabilities[str(i)] = probabilities[str(i)][0]
-		except:
-			print "Ngrams are not set correctly"
-			sys.exit()
+def extractProbabilities(examples, table=False):
+	global leastNgram, highestNgram
+
+	# load and format data correctly if
+	# given a table; otherwise calculate
+	# probabilities
+	if table:
+		probabilities = loadData(table, "key")
+		for i in range(leastNgram, highestNgram + 1):
+			try:
+				probabilities[str(i)] = probabilities[str(i)][0]
+			except:
+				print "Ngrams are not set correctly"
+				sys.exit()
+	else:
+		probabilities = tableFromData(examples, leastNgram, highestNgram)
 
 	# run over all examples counting
 	# the maximum length to allow
@@ -72,7 +86,7 @@ def extractProbabilities(examples, table):
 		 	for i in range((highestNgram - leastNgram + 1) * maxLength - len(example)):
 		 		example.append(0.0)
 	
-	return dataProbabilities, dataY
+	return dataProbabilities, dataY, probabilities
 
 
 
@@ -87,14 +101,20 @@ if __name__ == '__main__':
 	 # setup parser and parse args
 	parser = argparse.ArgumentParser(description='Trains the parameters of the POS model for antecedent identificaton')
 	parser.add_argument('dataref', metavar='dataref', type=str, help='Reference to the example file')
-	parser.add_argument('datatable', metavar='datatable', type=str, help='Reference to the table file')
+	parser.add_argument('-s', '--save', metavar='save', type=str, help='Save the table model to the given distination generated in this pass')
+	parser.add_argument('-m', '--model', metavar='model', type=str, default=False, help='Reference to the table file')
 	args = parser.parse_args()
 
-	# get data and batch size
-	kfold = 10
+	# load data and set 
+	# batch size
 	examples = loadData(args.dataref)
+	kfold = 10
 
 	# get the data in the right format, and
 	# run a kfold validation
-	dataX, dataY = extractProbabilities(examples, args.datatable)
-	kfoldValidation(kfold, dataX, dataY, True)
+	dataX, dataY, probabilities = extractProbabilities(examples, args.model)
+	kfoldValidation(kfold, dataX, dataY, True)	
+
+	# save data if required
+	if args.save and not args.model:
+		saveData(args.save, probabilities, 1)

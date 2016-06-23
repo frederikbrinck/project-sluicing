@@ -1,5 +1,15 @@
+# feature script that models
+# antecedent detection through
+# a language model, picking
+# the most likely phrase
+# when the antecedent is juxtaposed
+# with the sluice
+
 import os
 import kenlm
+import sys
+# import parent libraries
+sys.path.insert(0, '.')
 
 from nltk import pos_tag
 

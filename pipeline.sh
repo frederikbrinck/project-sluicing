@@ -4,13 +4,13 @@
 # python library. Note that you must add
 # more examples or modify the kfold factor
 # in f_pos.py for this to run properly
-python f_language.py data/examples-test.jsons
+python features/f_language.py data/examples-test.jsons
 
 #------------------POS-----------------#
 # note that in order to run this file
 # you must add more examples or modify the 
 # kfold factor in f_pos.py
-python f_pos.py data/examples-test.jsons models/table
+python features/f_pos.py data/examples-test.jsons --model models/table
 
 #---------------SLUICING---------------#
 # create table of probabilities
