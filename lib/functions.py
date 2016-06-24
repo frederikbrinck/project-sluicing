@@ -6,8 +6,9 @@ import re
 import nltk
 from nltk import pos_tag
 
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import LinearSVC
+import numpy as np
+from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
+from sklearn.svm import LinearSVC, SVC
 
 # return the sluice of the given
 # string, if any
@@ -129,17 +130,18 @@ def kfoldValidation(k, dataX, dataY, verbose=False):
 	size = len(dataX) / k
 	accuracies = []
 	for i in range(k):
-		testX = dataX[i * size : (i + 1) * size]
+		testX = dataX[i * size : (i + 1) * size,:]
 		testY = dataY[i * size : (i + 1) * size]
 		if i == 0:
-			trainX = dataX[(i + 1) * size : len(dataX)]
+			trainX = dataX[(i + 1) * size : len(dataX),:]
 			trainY = dataY[(i + 1) * size : len(dataY)]
 		elif i + 1 == k:
-			trainX = dataX[0 : i * size]
+			trainX = dataX[0 : i * size,:]
 			trainY = dataY[0 : i * size]
 		else:
-			trainX = dataX[0 : i * size] + dataX[(i + 1) * size : len(dataX)]
-			trainY = dataY[0 : i * size] + dataY[(i + 1) * size : len(dataY)]
+			trainX = np.append(np.array(dataX[0 : i * size]), np.array(dataX[(i + 1) * size : len(dataX)]), axis = 0)
+
+			trainY = np.append(np.array(dataY[0 : i * size]), np.array(dataY[(i + 1) * size : len(dataY)]), axis = 0)
 
 		# get data and fit it
 		dataFit = OneVsRestClassifier(LinearSVC(random_state=0)).fit(trainX, trainY)
