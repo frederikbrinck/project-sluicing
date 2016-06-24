@@ -17,7 +17,7 @@ from lib.probability import computeProbability
 
 # globals
 leastNgram = 1
-highestNgram = 3
+highestNgram = 5
 
 
 

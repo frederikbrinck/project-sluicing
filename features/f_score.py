@@ -16,6 +16,11 @@ from lib.data import loadData
 
 
 
+def getFirst(x):
+    return x[0]
+
+
+
 Lambdas = {
     "distanceFromSluice": -.92,
     "sluiceCandidateOverlap": 1.37, 
@@ -35,11 +40,6 @@ Lambdas = {
     "DegreeCorr": 0,
     "WhichCorr": 0 
 }
-
-
-
-def getFirst(x):
-    return x[0]
 
 
 

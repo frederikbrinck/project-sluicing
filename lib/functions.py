@@ -121,26 +121,22 @@ def getProbabilities(ngrams):
 # given some data, make a kfold
 # test on it and return the accuracies
 def kfoldValidation(k, dataX, dataY, verbose=False):
-	if verbose:
-		print "Running", str(k) + "-fold validation"
-		print "-----------------------------------------------------------"
 		
 	# split data set into different sizes, and 
 	# train the model
 	size = len(dataX) / k
 	accuracies = []
 	for i in range(k):
-		testX = dataX[i * size : (i + 1) * size,:]
-		testY = dataY[i * size : (i + 1) * size]
+		testX = np.array(dataX[i * size : (i + 1) * size])
+		testY = np.array(dataY[i * size : (i + 1) * size])
 		if i == 0:
-			trainX = dataX[(i + 1) * size : len(dataX),:]
-			trainY = dataY[(i + 1) * size : len(dataY)]
+			trainX = np.array(dataX[(i + 1) * size : len(dataX)])
+			trainY = np.array(dataY[(i + 1) * size : len(dataY)])
 		elif i + 1 == k:
-			trainX = dataX[0 : i * size,:]
-			trainY = dataY[0 : i * size]
+			trainX = np.array(dataX[0 : i * size,:])
+			trainY = np.array(dataY[0 : i * size])
 		else:
 			trainX = np.append(np.array(dataX[0 : i * size]), np.array(dataX[(i + 1) * size : len(dataX)]), axis = 0)
-
 			trainY = np.append(np.array(dataY[0 : i * size]), np.array(dataY[(i + 1) * size : len(dataY)]), axis = 0)
 
 		# get data and fit it

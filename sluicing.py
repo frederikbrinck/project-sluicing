@@ -6,6 +6,8 @@ import importlib
 import kenlm
 import numpy as np, numpy.random
 
+from sklearn import preprocessing
+from sklearn.preprocessing import OneHotEncoder
 from lib.data import loadData, saveData, splitData, tableFromData, predictData
 from lib.functions import getAntecedents, kfoldValidation
 
@@ -36,20 +38,6 @@ class surpressPrint(object):
 
 
 
-# get maximum number of candidates
-# for one example over the full
-# training set
-def getMaxCandidates(examples):
-	currentMax = 0
-	for key in examples:
-		length = len(examples[key])
-		if length > currentMax:
-			currentMax = length
-
-	return currentMax
-
-
-
 ####### ---->
 ###			------------>
 ###		LET'S GO 		----------->
@@ -65,20 +53,17 @@ if __name__ == '__main__':
 
 	with surpressPrint():
 		modelFeatures = []
-		modelFeatures.append({ "active": 1, "feature":"f_pos", "args": ["models/table"] })
 		lmModel = kenlm.Model('models/test.arpa')
-		modelFeatures.append({ "active": 1, "feature":"f_language", "args": [lmModel, 10] })
+		modelFeatures.append({ "active": 1, "feature":"f_language", "args": [lmModel, 9] })
+		modelFeatures.append({ "active": 1, "feature":"f_score", "args": [] })
+		modelFeatures.append({ "active": 0, "feature":"f_pos", "args": ["models/table"] })
 
     # load data from all active features
 	examples = loadData(args.dataref)
-	maxCandidates = getMaxCandidates(examples)
 
 	totalX = np.zeros((len(examples),0))
-	dataY = ""
 	for model in modelFeatures:
 		if model["active"]:
-			print 
-			print "----------------------------------"
 			print "Loading features from", model["feature"]
 
 			# load feature data and print sample
@@ -87,22 +72,17 @@ if __name__ == '__main__':
 			try:
 				maxFeatures = feature.featureNumber()
 				dataX, dataY = feature.extractFeatures(examples, *model["args"])
-			except error:
+			except Exception as error:
 				print "Error: Feature", model["feature"], "must contain function featureNumber() and extractFeatures(...).", error
-			print dataX[0]
-			print dataY[0]
 
 			totalX = np.append(totalX, dataX, axis=1)
 
+	# scaling data
+	print "Scaling data..."
+	totalX = preprocessing.maxabs_scale(totalX)
+
 	# run kfold validation
-	print 
 	print "----------------------------------"
 	print "Running kfold validation on all features"
 	print "----------------------------------"
-	kfoldValidation(10, totalX.tolist(), dataY, True)
-
-
-
-
-
-
+	kfoldValidation(10, np.array(totalX), np.array(dataY), True)
