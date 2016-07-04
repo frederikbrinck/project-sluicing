@@ -120,6 +120,22 @@ def getProbabilities(ngrams):
 
 
 
+# get a dictionary with key being 
+# the length and the value being the
+# number of candidate sets of
+# that length
+def getLengthCounts(examples):
+	counts = {}
+	for k in examples:
+		if len(examples[k]) not in counts:
+			counts[len(examples[k])] = 1
+		else:
+			counts[len(examples[k])] += 1
+	
+	return counts
+
+
+
 # given some examples and numbers
 # add padding to data
 def addPadding(dataX, chunkLength, prepend=False):

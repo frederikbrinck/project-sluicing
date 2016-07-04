@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import os
+import sys
 import random
 import importlib
 
@@ -9,7 +10,7 @@ import numpy as np, numpy.random
 from sklearn import preprocessing
 from sklearn.preprocessing import OneHotEncoder
 from lib.data import loadData, saveData, splitData, tableFromData, predictData
-from lib.functions import getAntecedents, kfoldValidation
+from lib.functions import getAntecedents, getLengthCounts, kfoldValidation
 
 
 
@@ -51,6 +52,7 @@ if __name__ == '__main__':
 	parser.add_argument('dataref', metavar='dataref', type=str, help='Reference to the data file')
 	args = parser.parse_args()
 
+	# add features for svm model
 	with surpressPrint():
 		modelFeatures = []
 		lmModel = kenlm.Model('models/test.arpa')
@@ -60,6 +62,13 @@ if __name__ == '__main__':
 
     # load data from all active features
 	examples = loadData(args.dataref)
+
+	# print counts of candidate sets
+	# grouped by length
+	if False:
+		counts = getLengthCounts(examples)
+		print counts
+		sys.exit(0)
 
 	totalX = np.zeros((len(examples),0))
 	for model in modelFeatures:
@@ -74,6 +83,7 @@ if __name__ == '__main__':
 				dataX, dataY = feature.extractFeatures(examples, *model["args"], **model["kwargs"])
 			except Exception as error:
 				print "Error: Feature", model["feature"], "must contain function coefNumber() and extractFeatures(...).", error
+				sys.exit(1)
 
 			totalX = np.append(totalX, dataX, axis=1)
 
