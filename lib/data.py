@@ -45,7 +45,9 @@ def saveData(file, saveDict, compact = 0):
 
 # given a set of examples
 # return the a dictionary of examples 
-# from position start to position end
+# from position start to position end;
+# we can do this as long as the dictionary
+# doesn't change in between
 def splitData(examples, start, end):
     i = 0
     batch = {}
@@ -55,6 +57,23 @@ def splitData(examples, start, end):
         i += 1
 
     return batch
+
+
+
+# filter the data by separating out
+# all data of the correct length
+def filterData(examples, length=False):
+    if not length:
+        print "Error: No valid parameters have been given to filterData"
+        return
+
+    filteredData = {}
+    if length:
+        for k in examples.keys():
+            if len(examples[k]) == length:
+                filteredData[k] = examples[k]
+
+    return filteredData
 
 
 

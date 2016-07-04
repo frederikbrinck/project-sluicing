@@ -68,8 +68,8 @@ def normalizeVals(features):
                 c["WH_gov_npmi"][0] = 0
             else:
                 c["WH_gov_npmi"][0] = (c["WH_gov_npmi"][0] - WH_gov_npmi_min) / (WH_gov_npmi_max - WH_gov_npmi_min)
-            if c["WH_gov_npmi"][0] <0:
-                pdb.set_trace()
+            #if c["WH_gov_npmi"][0] <0:
+                #pdb.set_trace()
             if c["sluiceCandidateOverlap"] > 0:
                 c["sluiceCandidateOverlap"] = float(c["sluiceCandidateOverlap"] - sluiceCandidateOverlap_min) / float(sluiceCandidateOverlap_max - sluiceCandidateOverlap_min);
 
