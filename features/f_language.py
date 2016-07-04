@@ -20,7 +20,7 @@ from lib.functions import kfoldValidation
 
 # return the number of features
 # added for this script per candidate
-def featureNumber():
+def coefNumber():
 	return 1
 
 

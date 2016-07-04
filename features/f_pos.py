@@ -23,7 +23,7 @@ highestNgram = 5
 
 # return the number of features
 # added for this script per candidate
-def featureNumber():
+def coefNumber():
 	global leastNgram, highestNgram
 	return highestNgram + 1 - leastNgram
 

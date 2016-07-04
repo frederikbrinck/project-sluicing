@@ -99,7 +99,7 @@ def modifyFeatures(features):
 
 
 
-def featureNumber():
+def coefNumber():
     global Lambdas
 
     return len(Lambdas) + 1

@@ -70,10 +70,10 @@ if __name__ == '__main__':
 			path = "features." + model["feature"]
 			feature = importlib.import_module(path)
 			try:
-				maxFeatures = feature.featureNumber()
+				maxCoefs = feature.coefNumber()
 				dataX, dataY = feature.extractFeatures(examples, *model["args"])
 			except Exception as error:
-				print "Error: Feature", model["feature"], "must contain function featureNumber() and extractFeatures(...).", error
+				print "Error: Feature", model["feature"], "must contain function coefNumber() and extractFeatures(...).", error
 
 			totalX = np.append(totalX, dataX, axis=1)
 
