@@ -7,7 +7,7 @@ import kenlm
 import numpy as np, numpy.random
 
 from sklearn import preprocessing
-from sklearn.preprocessing import OneHotEncoder
+from sklearn import svm
 from lib.data import loadData, saveData, splitData, filterData, tableFromData, predictData
 from lib.functions import getAntecedents, getLengthCounts, kfoldValidation
 from lib.features import combineFeatures, permuteFeatures
@@ -53,13 +53,17 @@ if __name__ == '__main__':
 	parser.add_argument('--permute', metavar='permutation length', type=int, help='Whether or not to do permutations of candidates in each set')
 	args = parser.parse_args()
 
-	# add features for svm model
+	# add features and the classifier
+	# for the svm model
 	with surpressPrint():
 		modelFeatures = []
 		lmModel = kenlm.Model('models/test.arpa')
-		modelFeatures.append({ "active": 1, "feature": "f_language", "args": [lmModel, 9], "kwargs": { "prepend": False } })
-		modelFeatures.append({ "active": 1, "feature": "f_score", "args": [], "kwargs": { "prepend": False } })
+		modelFeatures.append({ "active": 1, "feature": "f_language", "args": [lmModel, 9], "kwargs": { "prepend": True } })
+		modelFeatures.append({ "active": 1, "feature": "f_score", "args": [], "kwargs": { "prepend": True } })
+		modelFeatures.append({ "active": 0, "feature": "f_distance", "args": [], "kwargs": { "prepend": False } })
 		modelFeatures.append({ "active": 0, "feature": "f_pos", "args": [], "kwargs": { "table": "models/table" } })
+		
+		clf = svm.OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)
 
     # load data from all active features
 	examples = loadData(args.dataref)
@@ -82,8 +86,8 @@ if __name__ == '__main__':
 	print "Scaling data..."
 	totalX = preprocessing.maxabs_scale(totalX)
 
-	# run kfold validation
+	# run kfold validation 
 	print "----------------------------------"
 	print "Running kfold validation on all features"
 	print "----------------------------------"
-	kfoldValidation(10, np.array(totalX), np.array(totalY), verbose=True)
+	kfoldValidation(10, np.array(totalX), np.array(totalY), classifier=clf, verbose=True)

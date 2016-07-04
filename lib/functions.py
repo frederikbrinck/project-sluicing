@@ -150,7 +150,7 @@ def addPadding(dataX, chunkLength, prepend=False):
 
 # given some data, make a kfold
 # test on it and return the accuracies
-def kfoldValidation(k, dataX, dataY, verbose=False):
+def kfoldValidation(k, dataX, dataY, verbose=False, classifier=OneVsRestClassifier(LinearSVC(random_state=0))):
 		
 	# split data set into different sizes, and 
 	# train the model
@@ -163,14 +163,14 @@ def kfoldValidation(k, dataX, dataY, verbose=False):
 			trainX = np.array(dataX[(i + 1) * size : len(dataX)])
 			trainY = np.array(dataY[(i + 1) * size : len(dataY)])
 		elif i + 1 == k:
-			trainX = np.array(dataX[0 : i * size,:])
+			trainX = np.array(dataX[0 : i * size])
 			trainY = np.array(dataY[0 : i * size])
 		else:
 			trainX = np.append(np.array(dataX[0 : i * size]), np.array(dataX[(i + 1) * size : len(dataX)]), axis = 0)
 			trainY = np.append(np.array(dataY[0 : i * size]), np.array(dataY[(i + 1) * size : len(dataY)]), axis = 0)
 
 		# get data and fit it
-		dataFit = OneVsRestClassifier(LinearSVC(random_state=0)).fit(trainX, trainY)
+		dataFit = classifier.fit(trainX, trainY)
 
 		# test the predictions
 		# and calculate the accuracy

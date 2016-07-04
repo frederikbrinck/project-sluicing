@@ -1,7 +1,7 @@
 # feature script that models
 # antecedent detection through 
 # ngram probabilities in a
-# BLEU-like
+# BLEU-like fashion
 
 import sys
 # import parent libraries
