@@ -77,6 +77,7 @@ def filterData(examples, length=False):
 
 
 
+
 # create the probability table from
 # the given data
 def tableFromData(examples, ngramLow, ngramHigh):

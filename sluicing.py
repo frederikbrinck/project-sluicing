@@ -2,9 +2,6 @@
 import os
 import sys
 import random
-import importlib
-import itertools
-import math
 
 import kenlm
 import numpy as np, numpy.random
@@ -13,6 +10,7 @@ from sklearn import preprocessing
 from sklearn.preprocessing import OneHotEncoder
 from lib.data import loadData, saveData, splitData, filterData, tableFromData, predictData
 from lib.functions import getAntecedents, getLengthCounts, kfoldValidation
+from lib.features import combineFeatures, permuteFeatures
 
 
 
@@ -41,48 +39,6 @@ class surpressPrint(object):
 
 
 
-# combine all features given in a 
-# feature model into one feature list
-def combineFeatures(examples, modelFeatures, verbose=False):
-	totalX = np.zeros((len(examples),0))
-	for model in modelFeatures:
-		if model["active"]:
-			if verbose:
-				print "Loading features from", model["feature"]
-
-			# load feature data and print sample
-			path = "features." + model["feature"]
-			feature = importlib.import_module(path)
-			try:
-				maxCoefs = feature.coefNumber()
-				dataX, dataY = feature.extractFeatures(examples, *model["args"], **model["kwargs"])
-			except Exception as error:
-				print "Error: Feature", model["feature"], "must contain function coefNumber() and extractFeatures(...).", error
-				sys.exit(1)
-
-			totalX = np.append(totalX, dataX, axis=1)
-
-	return totalX, dataY
-
-
-
-# return the total number of 
-# features coefficient for the given
-# features of the model
-def coefNumber(modelFeatures):
-	numCoefs = 0
-	for model in modelFeatures:
-		if model["active"]:
-			# load feature data and print sample
-			path = "features." + model["feature"]
-			feature = importlib.import_module(path)
-			numCoefs += feature.coefNumber()
-			
-
-	return numCoefs
-
-
-
 ####### ---->
 ###			------------>
 ###		LET'S GO 		----------->
@@ -94,7 +50,7 @@ if __name__ == '__main__':
     # setup parser and parse args
 	parser = argparse.ArgumentParser(description='Extracts antecedent data and examples from the provided jsons file.')
 	parser.add_argument('dataref', metavar='path', type=str, help='Reference to the data file')
-	parser.add_argument('--permute', metavar='true/false', type=lambda x: x.lower() in ("yes", "true", "1"), help='Whether or not to do permutations of candidates in each set')
+	parser.add_argument('--permute', metavar='permutation length', type=int, help='Whether or not to do permutations of candidates in each set')
 	args = parser.parse_args()
 
 	# add features for svm model
@@ -115,43 +71,19 @@ if __name__ == '__main__':
 		print counts
 		sys.exit(0)
 
-	# initialise permutations if requested
+	# get permuted features if requested
 	if args.permute:
-		# filter data and get permutation generators
-		length = 4
-		data = filterData(examples, length=length)
-		for k in data.keys():
-			data[k] = itertools.permutations(data[k])
-
-		# recombine data into correct
-		totalX = np.zeros((0, length * coefNumber(modelFeatures)))
-		totalY = np.zeros(0)
-		for i in range(math.factorial(length)):
-			examples = {}
-			for k in data.keys():
-				examples[k] = data[k].next()
-
-			# combine all features for each candidate set
-			dataX, dataY = combineFeatures(examples, modelFeatures)
-			totalX = np.append(totalX, np.array(dataX), axis=0)
-			totalY = np.append(totalY, np.array(dataY))
-
-		totalX = preprocessing.maxabs_scale(totalX)
-
-		# do kfold validation and print result
-		accuracies = kfoldValidation(10, np.array(totalX), np.array(totalY), verbose=True)
-
-	# otherwise run standard kfold validation on
-	# all of the added features
+		totalX, totalY = permuteFeatures(examples, modelFeatures, length=args.permute)
+	# otherwise get features in a regular format
 	else:
-		totalX, dataY = combineFeatures(examples, modelFeatures, verbose=True)
+		totalX, totalY = combineFeatures(examples, modelFeatures, verbose=True)
 
-		# scaling data
-		print "Scaling data..."
-		totalX = preprocessing.maxabs_scale(totalX)
+	# scaling data
+	print "Scaling data..."
+	totalX = preprocessing.maxabs_scale(totalX)
 
-		# run kfold validation
-		print "----------------------------------"
-		print "Running kfold validation on all features"
-		print "----------------------------------"
-		kfoldValidation(10, np.array(totalX), np.array(dataY), verbose=True)
+	# run kfold validation
+	print "----------------------------------"
+	print "Running kfold validation on all features"
+	print "----------------------------------"
+	kfoldValidation(10, np.array(totalX), np.array(totalY), verbose=True)
