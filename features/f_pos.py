@@ -10,7 +10,7 @@ sys.path.insert(0, '.')
 from nltk import pos_tag
 
 from lib.data import loadData, saveData, tableFromData
-from lib.functions import getSluice, kfoldValidation
+from lib.functions import getSluice, addPadding, kfoldValidation
 from lib.probability import computeProbability
 
 
@@ -31,7 +31,7 @@ def coefNumber():
 
 # use the data table to figure out the 
 # probabilities for all data
-def extractFeatures(examples, table=False):
+def extractFeatures(examples, table=False, prepend=False):
 	global leastNgram, highestNgram
 
 	# load and format data correctly if
@@ -89,10 +89,7 @@ def extractFeatures(examples, table=False):
 	# before returning, add padding to
 	# the data in case some examples
 	# have too few sentences
-	for example in dataProbabilities:
-		 if len(example) < (highestNgram - leastNgram + 1) * maxLength:
-		 	for i in range((highestNgram - leastNgram + 1) * maxLength - len(example)):
-		 		example.append(0.0)
+	dataProbabilities = addPadding(dataProbabilities, (highestNgram - leastNgram + 1) * maxLength, prepend)
 	
 	if table:
 		return dataProbabilities, dataY

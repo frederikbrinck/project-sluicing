@@ -14,7 +14,7 @@ sys.path.insert(0, '.')
 from nltk import pos_tag
 
 from lib.data import loadData
-from lib.functions import kfoldValidation
+from lib.functions import addPadding, kfoldValidation
 
 
 
@@ -27,7 +27,7 @@ def coefNumber():
 
 # use the data table to figure out the 
 # probabilities for all data
-def extractFeatures(examples, model, n):
+def extractFeatures(examples, model, n, prepend=False):
 
 	# run over all examples counting
 	# the maximum length to allow
@@ -72,11 +72,12 @@ def extractFeatures(examples, model, n):
 	# before returning, add padding to
 	# the data in case some examples
 	# have too few sentences
-	for example in dataProbabilities:
-		 if len(example) < maxChunk:
-		 	for i in range(maxChunk - len(example)):
-		 		example.append(0.0)
-	
+	# for example in dataProbabilities:
+	# 	 if len(example) < maxChunk:
+	# 	 	for i in range(maxChunk - len(example)):
+	# 	 		example.append(0.0)
+	dataProbabilities = addPadding(dataProbabilities, maxChunk, prepend)
+
 	return dataProbabilities, dataY
 
 

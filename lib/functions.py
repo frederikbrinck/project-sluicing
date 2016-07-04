@@ -10,6 +10,8 @@ import numpy as np
 from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
 from sklearn.svm import LinearSVC, SVC
 
+
+
 # return the sluice of the given
 # string, if any
 def getSluice(haystack):
@@ -115,6 +117,18 @@ def getProbabilities(ngrams):
 					probabilities[ngram][sluice][entry] = float(counts[ngram][sluice][entry]) / counts[ngram][sluice]["length"]
 
 	return probabilities
+
+
+
+# given some examples and numbers
+# add padding to data
+def addPadding(dataX, chunkLength, prepend=False):
+	for chunk in dataX:
+		if len(chunk) < chunkLength:
+			for i in range(chunkLength - len(chunk)):
+				chunk.append(0.0) if not prepend else chunk.insert(0, 0.0)
+
+	return dataX
 
 
 

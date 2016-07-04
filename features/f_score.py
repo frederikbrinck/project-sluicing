@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, '.')
 
 from lib.data import loadData
+from lib.functions import addPadding
 
 
 
@@ -106,7 +107,7 @@ def coefNumber():
 
 
 
-def extractFeatures(examples):
+def extractFeatures(examples, prepend=False):
     global Lambdas
 
     def handleCorrFeat(sluiceType,key,corrVals, cand):
@@ -168,13 +169,9 @@ def extractFeatures(examples):
         if length > maxLength:
             maxLength = length
 
+    dataX = addPadding(dataX, maxLength * coefNumber(), prepend)
 
-    for example in dataX:
-     if len(example) < maxLength * featureNumber():
-        for i in range(maxLength * featureNumber() - len(example)):
-            example.append(0.0)
-
-    #print maxLength, "-", len(dataX[0]), featureNumber()
+    #print maxLength, "-", len(dataX[0]), coefNumber()
     return dataX, dataY
 
 

@@ -54,9 +54,9 @@ if __name__ == '__main__':
 	with surpressPrint():
 		modelFeatures = []
 		lmModel = kenlm.Model('models/test.arpa')
-		modelFeatures.append({ "active": 1, "feature":"f_language", "args": [lmModel, 9] })
-		modelFeatures.append({ "active": 1, "feature":"f_score", "args": [] })
-		modelFeatures.append({ "active": 0, "feature":"f_pos", "args": ["models/table"] })
+		modelFeatures.append({ "active": 1, "feature": "f_language", "args": [lmModel, 9], "kwargs": { "prepend": False } })
+		modelFeatures.append({ "active": 1, "feature": "f_score", "args": [], "kwargs": { "prepend": False } })
+		modelFeatures.append({ "active": 0, "feature": "f_pos", "args": [], "kwargs": { "table": "models/table" } })
 
     # load data from all active features
 	examples = loadData(args.dataref)
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 			feature = importlib.import_module(path)
 			try:
 				maxCoefs = feature.coefNumber()
-				dataX, dataY = feature.extractFeatures(examples, *model["args"])
+				dataX, dataY = feature.extractFeatures(examples, *model["args"], **model["kwargs"])
 			except Exception as error:
 				print "Error: Feature", model["feature"], "must contain function coefNumber() and extractFeatures(...).", error
 
