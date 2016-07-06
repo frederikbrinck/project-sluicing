@@ -89,7 +89,7 @@ def extractFeatures(examples, table=False, prepend=False):
 	# before returning, add padding to
 	# the data in case some examples
 	# have too few sentences
-	dataProbabilities = addPadding(dataProbabilities, (highestNgram - leastNgram + 1) * maxLength, prepend)
+	dataProbabilities = addPadding(dataProbabilities, coefNumber() * maxLength, prepend)
 	
 	if table:
 		return dataProbabilities, dataY

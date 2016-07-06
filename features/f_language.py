@@ -25,8 +25,8 @@ def coefNumber():
 
 
 
-# use the data table to figure out the 
-# probabilities for all data
+# extract all language features
+# from the data
 def extractFeatures(examples, model, n, prepend=False):
 
 	# run over all examples counting
@@ -76,7 +76,7 @@ def extractFeatures(examples, model, n, prepend=False):
 	# 	 if len(example) < maxChunk:
 	# 	 	for i in range(maxChunk - len(example)):
 	# 	 		example.append(0.0)
-	dataProbabilities = addPadding(dataProbabilities, maxChunk, prepend)
+	dataProbabilities = addPadding(dataProbabilities, coefNumber() * maxChunk, prepend)
 
 	return dataProbabilities, dataY
 
