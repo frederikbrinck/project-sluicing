@@ -8,6 +8,7 @@ import numpy as np, numpy.random
 
 from sklearn import preprocessing
 from sklearn import svm
+from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
 from lib.data import loadData, saveData, splitData, filterData, tableFromData, predictData
 from lib.functions import getAntecedents, getLengthCounts, kfoldValidation
 from lib.features import combineFeatures, permuteFeatures
@@ -57,13 +58,20 @@ if __name__ == '__main__':
 	# for the svm model
 	with surpressPrint():
 		modelFeatures = []
+
+		# add language model
 		lmModel = kenlm.Model('models/test.arpa')
-		modelFeatures.append({ "active": 1, "feature": "f_language", "args": [lmModel, 9], "kwargs": { "prepend": True } })
-		modelFeatures.append({ "active": 1, "feature": "f_score", "args": [], "kwargs": { "prepend": True } })
-		modelFeatures.append({ "active": 0, "feature": "f_distance", "args": [], "kwargs": { "prepend": False } })
+		modelFeatures.append({ "active": 1, "feature": "f_language", "args": [lmModel, 9], "kwargs": { "prepend": False } })
+		
+		# add our features, note that the 
+		# total amount of features are
+		# "sluiceType,distanceFromSluice,sluiceCandidateOverlap,backwards,WH_gov_npmi,containsSluice,isDominatedBySluice,isInRelClause,isInParenthetical,coordWithSluice,immedAfterCataphoricSluice,afterInitialSluice,sluiceInCataphoricPattern,LocativeCorr,EntityCorr,TemporalCorr,DegreeCorr,WhichCorr"
+		modelFeatures.append({ "active": 1, "feature": "f_score", "args": [], "kwargs": { "prepend": False, "features": "sluiceType,distanceFromSluice,sluiceCandidateOverlap,backwards,WH_gov_npmi,containsSluice,isDominatedBySluice,isInRelClause,isInParenthetical,coordWithSluice,immedAfterCataphoricSluice,afterInitialSluice,sluiceInCataphoricPattern,LocativeCorr,EntityCorr,TemporalCorr,DegreeCorr,WhichCorr" } })
+
+		# add pos tagging feature
 		modelFeatures.append({ "active": 0, "feature": "f_pos", "args": [], "kwargs": { "table": "models/table" } })
 		
-		clf = svm.OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)
+		clf = OneVsRestClassifier(svm.LinearSVC(random_state=0)) #svm.OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)
 
     # load data from all active features
 	examples = loadData(args.dataref)

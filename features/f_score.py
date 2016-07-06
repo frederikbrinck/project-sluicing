@@ -40,6 +40,7 @@ Lambdas = {
     "TemporalCorr": 0,
     "DegreeCorr": 0,
     "WhichCorr": 0 
+    #"sluiceType" not a lambda but a reference to features
 }
 
 
@@ -107,7 +108,7 @@ def coefNumber():
 
 
 
-def extractFeatures(examples, prepend=False):
+def extractFeatures(examples, prepend=False, features=""):
     global Lambdas
 
     def handleCorrFeat(sluiceType,key,corrVals, cand):
@@ -134,6 +135,8 @@ def extractFeatures(examples, prepend=False):
     dataY = []
     mappings = {"PP": 1, "Degree": 2, "Temporal": 3, "Classificatory": 4, "Focus": 5, "Possessor": 6, "Entity": 7, "Passive": 8, "Reason": 9, "Locative": 10, "Which": 11, "Manner": 12, "None": 13 }
     
+    features = [] if features == "" else features.split(",")
+
     maxLength = 0
     for key, candidateSet in examples.items(): 
         setData = []
@@ -142,21 +145,23 @@ def extractFeatures(examples, prepend=False):
             sluiceType = cand["sluiceType"]
             corrVals = cand["corrEls"]
             
-            setData.append(mappings[str(sluiceType)])
+            if "sluiceType" in features:
+                setData.append(mappings[str(sluiceType)])
 
             for lkey, factor in Lambdas.items():
-                if "WH_gov_npmi" in lkey:
-                    setData.append(cand[lkey][0])
-                elif "Corr" not in lkey:
-                    if cand[lkey] == 1:
-                        setData.append(1)
-                    elif cand[lkey] == 0:
-                        setData.append(0)
+                if lkey in features:
+                    if "WH_gov_npmi" in lkey:
+                        setData.append(cand[lkey][0])
+                    elif "Corr" not in lkey:
+                        if cand[lkey] == 1:
+                            setData.append(1)
+                        elif cand[lkey] == 0:
+                            setData.append(0)
+                        else:
+                            setData.append(cand[lkey])
                     else:
-                        setData.append(cand[lkey])
-                else:
-                    c = handleCorrFeat(sluiceType, lkey, corrVals, cand)
-                    setData.append(c)
+                        c = handleCorrFeat(sluiceType, lkey, corrVals, cand)
+                        setData.append(c)
 
             if cand["isAntecedent"]:
                 dataY.append(length)
@@ -168,10 +173,7 @@ def extractFeatures(examples, prepend=False):
 
         if length > maxLength:
             maxLength = length
-
-    dataX = addPadding(dataX, maxLength * coefNumber(), prepend)
-
-    #print maxLength, "-", len(dataX[0]), coefNumber()
+    dataX = addPadding(dataX, maxLength * len(features), prepend)
     return dataX, dataY
 
 

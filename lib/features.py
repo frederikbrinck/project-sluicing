@@ -4,6 +4,7 @@
 import importlib
 import itertools
 import math
+import sys
 
 import numpy as np
 from data import filterData
@@ -33,17 +34,16 @@ def combineFeatures(examples, modelFeatures, verbose=False):
 	for model in modelFeatures:
 		if model["active"]:
 			if verbose:
-				print "Loading features from", model["feature"]
+				print "Loading features from", model["feature"] + "..."
 
 			# load feature data and print sample
 			path = "features." + model["feature"]
 			feature = importlib.import_module(path)
-			try:
-				maxCoefs = feature.coefNumber()
-				dataX, totalY = feature.extractFeatures(examples, *model["args"], **model["kwargs"])
-			except Exception as error:
-				print "Error: Feature", model["feature"], "must contain function coefNumber() and extractFeatures(...).", error
-				sys.exit(1)
+			#try:
+			dataX, totalY = feature.extractFeatures(examples, *model["args"], **model["kwargs"])
+			# except Exception as error:
+			# 	print "Error: Feature", model["feature"], "must contain function coefNumber() and extractFeatures(...).", error
+			# 	sys.exit(1)
 
 			totalX = np.append(totalX, dataX, axis=1)
 
