@@ -60,7 +60,7 @@ if __name__ == '__main__':
 		modelFeatures = []
 
 		# add language model
-		lmModel = kenlm.Model('models/test.arpa')
+		lmModel = kenlm.Model('models/standard.arpa')
 		modelFeatures.append({ "active": 1, "feature": "f_language", "args": [lmModel, 9], "kwargs": { "prepend": False } })
 		
 		# add our features, note that the 
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 		modelFeatures.append({ "active": 1, "feature": "f_score", "args": [], "kwargs": { "prepend": False, "features": "sluiceType,distanceFromSluice,sluiceCandidateOverlap,backwards,WH_gov_npmi,containsSluice,isDominatedBySluice,isInRelClause,isInParenthetical,coordWithSluice,immedAfterCataphoricSluice,afterInitialSluice,sluiceInCataphoricPattern,LocativeCorr,EntityCorr,TemporalCorr,DegreeCorr,WhichCorr" } })
 
 		# add pos tagging feature
-		modelFeatures.append({ "active": 0, "feature": "f_pos", "args": [], "kwargs": { "table": "models/table" } })
+		modelFeatures.append({ "active": 1, "feature": "f_pos", "args": [], "kwargs": { "table": "models/table" } })
 		
 		clf = OneVsRestClassifier(svm.LinearSVC(random_state=0)) #svm.OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)
 

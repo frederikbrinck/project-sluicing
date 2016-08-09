@@ -35,9 +35,11 @@ def saveData(file, saveDict, compact = 0):
         # on a separate line
         if (compact):
             for k in saveDict:
-                saveDict[k]["key"] = k
-                out = json.dumps(saveDict[k])
-                fp.write(out.strip('"') + "\n")
+                for sentence in saveDict[k]:
+                    sentence["sluiceId"] = k
+                    fp.write(json.dumps(sentence) + "\n")
+                # out = json.dumps(saveDict[k])
+                # fp.write(out.strip('"') + "\n")
         else:
             json.dump(saveDict, fp, indent = 4)
 
