@@ -78,53 +78,54 @@ isInitial = True
 
 
 Lambdas = {
-    "lmScore": 3.41,
-    "ngram2": 0.58,
-    "ngram3": 2.02,
-    "distanceFromSluice": -.92,
-    "sluiceCandidateOverlap": 1.37, 
-    "backwards": -1.12,
-    "WH_gov_npmi": [getFirst,2.65], #[first] 
-    "containsSluice": -4.44,
-    "isDominatedBySluice": -10,
-    "isInRelClause": -1.40,
-    "isInParenthetical": -2.4,
-    "coordWithSluice": -.46,
-    "immedAfterCataphoricSluice": 2.13,
-    "afterInitialSluice": -1.85,
-    "sluiceInCataphoricPattern": -1.03,
-    "LocativeCorr": 0,
-    "EntityCorr": 0,
-    "TemporalCorr": 0,
-    "DegreeCorr": 0,
-    "WhichCorr": 0
-    
-      }
+    # "lmScore": 3.41,
+    # "ngram2": 0.58,
+    # "ngram3": 2.02,
+    # "w2vMainPredicate": 1
+    # "distanceFromSluice": -.92,
+    # "sluiceCandidateOverlap": 1.37, 
+    # "backwards": -1.12,
+    ##  "WH_gov_npmi": [getFirst,2.65], #[first] 
+    # "containsSluice": -4.44,
+    # "isDominatedBySluice": -10,
+    # "isInRelClause": -1.40,
+    # "isInParenthetical": -2.4,
+    # "coordWithSluice": -.46,
+    # "immedAfterCataphoricSluice": 2.13,
+    # "afterInitialSluice": -1.85,
+    # "sluiceInCataphoricPattern": -1.03,
+    # "LocativeCorr": 0,
+    # "EntityCorr": 0,
+    # "TemporalCorr": 0,
+    # "DegreeCorr": 0,
+    # "WhichCorr": 0
+}
 
 
 
 # this could define a subset of Lambdas that should participate in Hill Climbing
 ChangeLambdas = {
-    "lmScore": 10,
-    "ngram2": 10,
-    "ngram3": 10,
-    "distanceFromSluice": -1,
-#    "sluiceCandidateOverlap": 1, 
-    "backwards": -1,
-#   "WH_gov_npmi": [getFirst,0.5], #[first] 
-    "containsSluice": -10,
-    "isDominatedBySluice": -10,
-    "isInRelClause": -10,
-    "isInParenthetical": -10,
-    "coordWithSluice": 0,
-    "immedAfterCataphoricSluice": 10,
-    "afterInitialSluice": -10,
-    "sluiceInCataphoricPattern": 0,
-    "LocativeCorr": 0,
-    "EntityCorr": 0,
-    "TemporalCorr": 0,
-    "DegreeCorr": 0,
-    "WhichCorr": 0
+#     "lmScore": 10,
+#     "ngram2": 10,
+#     "ngram3": 10,
+      # "w2vMainPredicate": 0.5
+#     "distanceFromSluice": -1,
+#      "sluiceCandidateOverlap": 1, 
+#     "backwards": -1,
+ #     "WH_gov_npmi": [getFirst,0.5], #[first] 
+#     "containsSluice": -10,
+#     "isDominatedBySluice": -10,
+#     "isInRelClause": -10,
+#     "isInParenthetical": -10,
+#     "coordWithSluice": 0,
+#     "immedAfterCataphoricSluice": 10,
+#     "afterInitialSluice": -10,
+#     "sluiceInCataphoricPattern": 0,
+#     "LocativeCorr": 0,
+#     "EntityCorr": 0,
+#     "TemporalCorr": 0,
+#     "DegreeCorr": 0,
+#     "WhichCorr": 0
 }
 
 
@@ -161,10 +162,11 @@ def normalizeVals(features):
                     sluiceCandidateOverlap_max =  c["sluiceCandidateOverlap"]
                 if c["sluiceCandidateOverlap"] < sluiceCandidateOverlap_min:
                     sluiceCandidateOverlap_min =  c["sluiceCandidateOverlap"]
-                if c["lmScore"] > lm_max:
-                    lm_max = c["lmScore"]
-                if c["lmScore"] < lm_min:
-                    lm_min = c["lmScore"]
+                if "lmScore" in c:
+                    if c["lmScore"] > lm_max:
+                        lm_max = c["lmScore"]
+                    if c["lmScore"] < lm_min:
+                        lm_min = c["lmScore"]
                 
     for sluiceId, candidateSet in features.items():
         for c in candidateSet:
@@ -176,8 +178,8 @@ def normalizeVals(features):
                 pdb.set_trace()
             if c["sluiceCandidateOverlap"] > 0:
                 c["sluiceCandidateOverlap"] = float(c["sluiceCandidateOverlap"] - sluiceCandidateOverlap_min) / float(sluiceCandidateOverlap_max - sluiceCandidateOverlap_min);
-
-            c["lmScore"] = float(c["lmScore"] - lm_min) / float(lm_max - lm_min);
+            if "lmScore" in c:
+                c["lmScore"] = float(c["lmScore"] - lm_min) / float(lm_max - lm_min);
 
 
 

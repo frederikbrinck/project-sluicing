@@ -14,8 +14,12 @@ from sklearn.svm import LinearSVC, SVC
 
 # return the sluice of the given
 # string, if any
-def getSluice(haystack):
-	sluiceRe = r'(how far|how long|how many|how much|how come|how old|when|where|why|how|what|which|who|whom|whose)'
+def getSluice(haystack, simple=0):
+	if simple:
+		sluiceRe = r'(when|where|why|how|what|which|who|whom|whose)'
+	else:
+		sluiceRe = r'(how far|how long|how many|how much|how come|how old|when|where|why|how|what|which|who|whom|whose)'
+
 	search = re.search(sluiceRe, haystack, re.I)
 	if search:
 		return search.group(1)
