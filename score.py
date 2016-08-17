@@ -19,15 +19,15 @@ def getFirst(x):
 
 # best parameter intialisation
 Lambdas = {
-    "lmScore": 3.41,
-    # "lmPerplexity": 2.12,
+    # "lmScore": 3.41,
     # "ngram2": 0.58,
     # "ngram3": 2.02,
-    "w2vMaxSimilarity": -0.31,
+    # "w2vMaxSimilarity": -0.31,
     # "w2vMainPredicate": 1,
+    "w2vPredicates": 2.1,
     # "distanceFromSluice": -.92,
     # "sluiceCandidateOverlap": 1.37, 
-    "backwards": -1.12,
+    # "backwards": -1.12,
     # "WH_gov_npmi": [getFirst,2.65], #[first] 
     # "containsSluice": -4.44,
     # "isDominatedBySluice": -10,
@@ -46,15 +46,15 @@ Lambdas = {
 
 # subset of lambdas participating in hill climbing
 ChangeLambdas = {
-    "lmScore": 10,
-    # "lmPerplexity": 5
+    # "lmScore": 10,
     # "ngram2": 10,
     # "ngram3": 10,
-    "w2vMaxSimilarity": -0.5,
+    # "w2vMaxSimilarity": -0.5,
     # "w2vMainPredicate": 2,
+    "w2vPredicates": 2,
     # "distanceFromSluice": -1,
     # "sluiceCandidateOverlap": 1, 
-    "backwards": -1,
+    # "backwards": -1,
     # "WH_gov_npmi": [getFirst,0.5], #[first] 
     # "containsSluice": -10,
     # "isDominatedBySluice": -10,
@@ -177,22 +177,21 @@ def score(candidate, lambdas):
             elif type(factor) == type([]):
                 weight = factor[0](weight)
                 factor = factor[1]
-            if debug_level > 1:
-                print "scoring", key, weight, factor
+            debug("scoring" + key + " " + str(weight) + " " + str(factor), 1)
         score += weight * factor
     return score
 
 
 debugGlobal = 0
-def debug(message, level)
+def debug(message, level):
     if debugGlobal >  level:
          print message
 
 def computeBest(candidates, lambdas):    
     debug("Computing best for sluiceId: " + candidates[0]["sluiceId"], 1)
     for candidate in candidates:
-        candidate["score"] = score(lambdas, candidate)
-        debug("Scored " + candidate["score"] + ": " + candidate["text"], 1)
+        candidate["score"] = score(candidate, lambdas)
+        debug("Scored " + str(candidate["score"]) + ": " + candidate["text"], 1)
 
     candidates = sorted(candidates, key=lambda x: x["score"])
     debug("Chose:" + candidates[-1]["text"], 1)
@@ -256,7 +255,7 @@ def predictAntecedent(features, lambdas):
                 statsBySentence[correctSentence]["right"] += 1
                 successesByType[sluiceType][correlateType] +=1
                 debug("---------CORRECT----------", 1)
-                debug("Id " + sluiceId + ": " + chosen["text"] + " " + chosen["distanceFromSluice"] + " " + chosen["backwards"], 1)
+                debug("Id " + sluiceId + ": " + chosen["text"] + " " + str(chosen["distanceFromSluice"]) + " " + str(chosen["backwards"]), 1)
                 debug("--------------------------", 1)
             else:
                 statsBySentence[correctSentence]["wrong"] += 1
@@ -264,7 +263,7 @@ def predictAntecedent(features, lambdas):
                 debug("---------WRONG----------", 1)
                 debug("Id " + sluiceId + ": " + chosen["text"], 1)
                 debug("Antecedent: " + correct["text"], 1)
-                debug("Sluice: " + chosen["sluiceLineText"] + " " + chosen["distanceFromSluice"] + " " + chosen["backwards"], 1)
+                debug("Sluice: " + chosen["sluiceLineText"] + " " + str(chosen["distanceFromSluice"]) + " " + str(chosen["backwards"]), 1)
                 debug("--------------------------", 1)
                 
             #p,r,f = computeStats(chosen,correct)
@@ -362,7 +361,7 @@ def optimize(features, iterations = 100, restarts=10, maxIncr=30):
             for l in field:
                 scoreStr = predictAntecedent(features,l)
                 curScore = getAcc(scoreStr)
-                if debug_level > 0:
+                if debugGlobal > 0:
                     fldValsPrint(l),
                     print curScore
 
@@ -427,7 +426,7 @@ def optimize_org(features, iterations = 10, maxIncr=30):
         for l in field:
             scoreStr = predictAntecedent(features,l)
             curScore = getAcc(scoreStr)
-            if debug_level > 0:
+            if debugGlobal > 0:
                 print "Lambdas:", 
                 lambdaPrint(l)
                 print curScore
@@ -480,9 +479,9 @@ def printSF(sucF):
 def lambdaPrint(lambdas):
     for k in sorted(lambdas.keys()):
         if type(lambdas[k]) == type([]):
-            debug("\t\t" + k + ":\t" + lambdas[k][1], 0)
+            debug("\t\t" + k + ":\t" + str(lambdas[k][1]), 0)
         else:
-            debug("\t\t" + k + ":\t" + lambdas[k], 0)
+            debug("\t\t" + k + ":\t" + str(lambdas[k]), 0)
 
 def fldValsPrint(l):
     for k in sorted(l.keys()):
