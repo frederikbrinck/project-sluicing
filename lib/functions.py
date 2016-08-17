@@ -49,6 +49,15 @@ def getAntecedents(examples):
 	return antecedentDictionary
 
 
+# returns the correct antecedent given a candidate set
+def getAntecedent(candidates):
+    correct = None
+    for candidate in candidates:
+        if candidate["isAntecedent"]:
+            return candidate
+    
+    return None
+
 
 # get ngrams of all antecedents requiring
 # that the antecedents is a dictionary

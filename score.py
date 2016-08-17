@@ -1,4 +1,7 @@
-#!/usr/bin/python
+# this code was originally created by Pranav Anand at UCSC
+# and Daniel Hardt at CBS as a part of their sluicing paper;
+# the current form is an adapted and heavily modified version
+# that allows for further feature analysis.
 import csv
 import json
 from collections import defaultdict, Counter
@@ -8,84 +11,24 @@ import copy
 import random
 import math
 
+from lib.data import loadData
+from lib.functions import getAntecedent
+
 def getFirst(x):
     return x[0]
 
-correlatesByCand = defaultdict(lambda: defaultdict(list))
-isInitial = True
-# Lambdas = {"sluiceInParenthetical": 1,
-# "sentence": -1, 
-# "sluiceInBut": 1,
-# "sluiceCandidateOverlap": 1, 
-# "sluiceNegated": 1, 
-# "distanceFromSluice": -1, 
-# "sluiceInCoordinatedVP": 1,
-# "WH_gov_npmi": [getFirst,pow(10,9)], #[first]
-# "containsSluice": -1,
-# "isDominatedBySluice": -1,
-# "WH_gov_count": [getFirst,-.05],  #[first]
-# "embedsS": -1, 
-# #"containsAntecedent": -1,
-# "isInRelClause": -1, 
-# "isInParenthetical": -1, 
-# "coordWithSluice": 1
-# }
-
-# Lambdas = {
-#     # "sluiceInParenthetical": 0,
-#     # "sentence": 0,
-#     # "sluiceInBut": 0,
-#     # "sluiceIsInitial": 0,
-#     # "sluiceCandidateOverlap": 0,
-#     "sluiceNegated": 1,
-#      "distanceFromSluice": -1,
-#     "backwards": -1,
-# #    "sluiceInCoordinatedVP": 0,
-#     "WH_gov_npmi": [getFirst,0], #[first] 
-#     "containsSluice": -10,
-#     "isDominatedBySluice": -10,
-#     "WH_gov_count": [getFirst,0], #[first]
-# #    "embedsS": 0,
-# #   "containsAntecedent": -1,
-#     "isInRelClause": -10,
-#     "isInParenthetical": -10,
-#     "coordWithSluice": 0,
-#     "immedAfterCataphoricSluice": 10,
-#     "afterInitialSluice": -10,
-# #    "largerThanEquivCand": 0
-#      }
-
-# Lambdas = {
-#     "distanceFromSluice": -1,
-#     "sluiceCandidateOverlap": 1, 
-#     "backwards": -1,
-#     "WH_gov_npmi": [getFirst,0], #[first] 
-#     "containsSluice": -10,
-#     "isDominatedBySluice": -10,
-#     "isInRelClause": -10,
-#     "isInParenthetical": -10,
-#     "coordWithSluice": 0,
-#     "immedAfterCataphoricSluice": 10,
-#     "afterInitialSluice": -10,
-#     "sluiceInCataphoricPattern": 0,
-#     "LocativeCorr": 1,
-#     "EntityCorr": 0,
-#     "TemporalCorr": 1,
-#     "DegreeCorr": 0,
-#     "WhichCorr": 1
-    
-#      }
-
-
+# best parameter intialisation
 Lambdas = {
-    # "lmScore": 3.41,
+    "lmScore": 3.41,
+    # "lmPerplexity": 2.12,
     # "ngram2": 0.58,
     # "ngram3": 2.02,
-    # "w2vMainPredicate": 1
+    "w2vMaxSimilarity": -0.31,
+    # "w2vMainPredicate": 1,
     # "distanceFromSluice": -.92,
     # "sluiceCandidateOverlap": 1.37, 
-    # "backwards": -1.12,
-    ##  "WH_gov_npmi": [getFirst,2.65], #[first] 
+    "backwards": -1.12,
+    # "WH_gov_npmi": [getFirst,2.65], #[first] 
     # "containsSluice": -4.44,
     # "isDominatedBySluice": -10,
     # "isInRelClause": -1.40,
@@ -101,267 +44,250 @@ Lambdas = {
     # "WhichCorr": 0
 }
 
-
-
-# this could define a subset of Lambdas that should participate in Hill Climbing
+# subset of lambdas participating in hill climbing
 ChangeLambdas = {
-#     "lmScore": 10,
-#     "ngram2": 10,
-#     "ngram3": 10,
-      # "w2vMainPredicate": 0.5
-#     "distanceFromSluice": -1,
-#      "sluiceCandidateOverlap": 1, 
-#     "backwards": -1,
- #     "WH_gov_npmi": [getFirst,0.5], #[first] 
-#     "containsSluice": -10,
-#     "isDominatedBySluice": -10,
-#     "isInRelClause": -10,
-#     "isInParenthetical": -10,
-#     "coordWithSluice": 0,
-#     "immedAfterCataphoricSluice": 10,
-#     "afterInitialSluice": -10,
-#     "sluiceInCataphoricPattern": 0,
-#     "LocativeCorr": 0,
-#     "EntityCorr": 0,
-#     "TemporalCorr": 0,
-#     "DegreeCorr": 0,
-#     "WhichCorr": 0
+    "lmScore": 10,
+    # "lmPerplexity": 5
+    # "ngram2": 10,
+    # "ngram3": 10,
+    "w2vMaxSimilarity": -0.5,
+    # "w2vMainPredicate": 2,
+    # "distanceFromSluice": -1,
+    # "sluiceCandidateOverlap": 1, 
+    "backwards": -1,
+    # "WH_gov_npmi": [getFirst,0.5], #[first] 
+    # "containsSluice": -10,
+    # "isDominatedBySluice": -10,
+    # "isInRelClause": -10,
+    # "isInParenthetical": -10,
+    # "coordWithSluice": 0,
+    # "immedAfterCataphoricSluice": 10,
+    # "afterInitialSluice": -10,
+    # "sluiceInCataphoricPattern": 0,
+    # "LocativeCorr": 0,
+    # "EntityCorr": 0,
+    # "TemporalCorr": 0,
+    # "DegreeCorr": 0,
+    # "WhichCorr": 0
 }
 
 
-def loadData(fname):
-    features = defaultdict(list)
-    fd = open(fname, "r")
-    #csv.reader(fd)
-    for row in fd:
-        d = json.loads(row)
-        try:
-            sluiceId = d["sluiceId"]
-        except:
-            continue
-        features[sluiceId].append(d)
-
-    return features
 
 
-def normalizeVals(features):
+correlatesByCand = defaultdict(lambda: defaultdict(list))
+isInitial = True
 
-    first = True
-    sluiceCandidateOverlap_min = sluiceCandidateOverlap_max = lm_min = lm_max = 0.0
-    for sluiceId, candidateSet in features.items():
-        for c in candidateSet:
-            if first:
-                WH_gov_npmi_min =  WH_gov_npmi_max = c["WH_gov_npmi"][0]
-                first = False
+
+
+# normalise the feature values if needed
+def normaliseFeatures(features):
+    sluiceCandidateOverlapMin = sluiceCandidateOverlapMax = 0.0
+    npmiMin = npmiMax = 0.0
+    lmMin = lmMax = 0.0
+
+    # find min and max for each feature
+    for sluiceId, candidates in features.items():
+        for candidate in candidates:
+            if npmiMin == 0.0 and npmiMax == 0.0:
+                npmiMin =  npmiMax = candidate["WH_gov_npmi"][0]
             else:
-                if c["WH_gov_npmi"][0] > WH_gov_npmi_max:
-                    WH_gov_npmi_max = c["WH_gov_npmi"][0]
-                if c["WH_gov_npmi"][0] < WH_gov_npmi_min and c["WH_gov_npmi"][0] > 0: 
-                    WH_gov_npmi_min = c["WH_gov_npmi"][0]
-                if c["sluiceCandidateOverlap"] > sluiceCandidateOverlap_max:
-                    sluiceCandidateOverlap_max =  c["sluiceCandidateOverlap"]
-                if c["sluiceCandidateOverlap"] < sluiceCandidateOverlap_min:
-                    sluiceCandidateOverlap_min =  c["sluiceCandidateOverlap"]
-                if "lmScore" in c:
-                    if c["lmScore"] > lm_max:
-                        lm_max = c["lmScore"]
-                    if c["lmScore"] < lm_min:
-                        lm_min = c["lmScore"]
+                if candidate["WH_gov_npmi"][0] > npmiMax:
+                    npmiMax = candidate["WH_gov_npmi"][0]
+                if candidate["WH_gov_npmi"][0] < npmiMin and candidate["WH_gov_npmi"][0] > 0: 
+                    npmiMin = candidate["WH_gov_npmi"][0]
+                if candidate["sluiceCandidateOverlap"] > sluiceCandidateOverlapMax:
+                    sluiceCandidateOverlapMax =  candidate["sluiceCandidateOverlap"]
+                if candidate["sluiceCandidateOverlap"] < sluiceCandidateOverlapMin:
+                    sluiceCandidateOverlapMin =  candidate["sluiceCandidateOverlap"]
+                if "lmScore" in candidate:
+                    if candidate["lmScore"] > lmMax:
+                        lmMax = candidate["lmScore"]
+                    if candidate["lmScore"] < lmMin:
+                        lmMin = candidate["lmScore"]
                 
-    for sluiceId, candidateSet in features.items():
-        for c in candidateSet:
-            if c["WH_gov_npmi"][1] == 'MISSING': #nothing left here, set it to the minimum
-                c["WH_gov_npmi"][0] = 0
+    # normalise features
+    for sluiceId, candidates in features.items():
+        for candidate in candidates:
+            if candidate["WH_gov_npmi"][1] == 'MISSING': #nothing left here, set it to the minimum
+                candidate["WH_gov_npmi"][0] = 0
             else:
-                c["WH_gov_npmi"][0] = (c["WH_gov_npmi"][0] - WH_gov_npmi_min) / (WH_gov_npmi_max - WH_gov_npmi_min)
-            if c["WH_gov_npmi"][0] <0:
+                candidate["WH_gov_npmi"][0] = (candidate["WH_gov_npmi"][0] - npmiMin) / (npmiMax - npmiMin)
+
+            if candidate["WH_gov_npmi"][0] <0:
                 pdb.set_trace()
-            if c["sluiceCandidateOverlap"] > 0:
-                c["sluiceCandidateOverlap"] = float(c["sluiceCandidateOverlap"] - sluiceCandidateOverlap_min) / float(sluiceCandidateOverlap_max - sluiceCandidateOverlap_min);
-            if "lmScore" in c:
-                c["lmScore"] = float(c["lmScore"] - lm_min) / float(lm_max - lm_min);
+            if candidate["sluiceCandidateOverlap"] > 0:
+                candidate["sluiceCandidateOverlap"] = float(candidate["sluiceCandidateOverlap"] - sluiceCandidateOverlapMin) / float(sluiceCandidateOverlapMax - sluiceCandidateOverlapMin);
+            if "lmScore" in candidate:
+                candidate["lmScore"] = float(candidate["lmScore"] - lmMin) / float(lmMax - lmMin);
 
-
-
+# modify certain features 
 def modifyFeatures(features):
-
-    for sluiceId, candidateSet in features.items():
-        for cand in candidateSet:
-            if cand["distanceFromSluice"] >= 0:
-                cand["backwards"] = 1
-            else:
-                cand["backwards"] = 0
+    for sluiceId, candidates in features.items():
+        for candidate in candidates:
+            # set backwards
+            candidate["backwards"] = 1 if candidate["distanceFromSluice"] >= 0 else 0
                 
-            cand["immedAfterCataphoricSluice"] = 0
-            cand["afterInitialSluice"] = 0
-            cand["sluiceInCataphoricPattern"] = 0
+            candidate["immedAfterCataphoricSluice"] = 0
+            candidate["afterInitialSluice"] = 0
+            candidate["sluiceInCataphoricPattern"] = 0
                 
-            if "do n't know why , but" in cand["sluiceLineText"] or (cand["sluiceInBut"] and cand["sluiceNegated"]):
-                cand["sluiceInCataphoricPattern"] = 1
-                if cand["distanceFromSluice"] in [1,2] and cand["backwards"]==1:
-                    cand["immedAfterCataphoricSluice"] = 1
+            if "do n't know why , but" in candidate["sluiceLineText"] or (candidate["sluiceInBut"] and candidate["sluiceNegated"]):
+                candidate["sluiceInCataphoricPattern"] = 1
+                if candidate["distanceFromSluice"] in [1,2] and candidate["backwards"] == 1:
+                    candidate["immedAfterCataphoricSluice"] = 1
                         
-            if cand["sluiceIsInitial"] and not cand["sluiceInCataphoricPattern"] and cand["sentence"] == 1:
-                cand["afterInitialSluice"] = 1
+            if candidate["sluiceIsInitial"] and not candidate["sluiceInCataphoricPattern"] and candidate["sentence"] == 1:
+                candidate["afterInitialSluice"] = 1
                             
-            if cand["distanceFromSluice"] < 0:
-                cand["distanceFromSluice"] *= -1
+            if candidate["distanceFromSluice"] < 0:
+                candidate["distanceFromSluice"] *= -1
 
 
+def handleCorrFeat(sluiceType,key,corrVals, candidate):
+    mapping = {"Locative": ["location"], "Entity": ["wk"], "Temporal": ["time"], "Which": ["disj"]}
 
-
-def getCorrect(candidateSet):
-    correct = None
-    for c in candidateSet:
-        if c["isAntecedent"]:
-            return c
-    
-    return None
-
-def computeBest(candidateSet, lambdas):
-    
-    def handleCorrFeat(sluiceType,key,corrVals, cand):
-        mapping = {"Locative": ["location"], "Entity": ["wk"], "Temporal": ["time"], "Which": ["disj"]}
-
-        keyLess = key.replace("Corr", "")
-        if sluiceType != keyLess:
-            return 0
-            
-        tot = 0        
-        try:
-            for lookup in mapping[sluiceType]:
-                v = len(corrVals[lookup])
-                tot += v
-        except KeyError:
-            return tot
+    keyLess = key.replace("Corr", "")
+    if sluiceType != keyLess:
+        return 0
         
-        return tot
-        
-    def score(cand):
-        s = 0
-        sluiceType = cand["sluiceType"]
-        corrVals = cand["corrEls"]
-        
-        for key,factor in lambdas.items():
-            if "Corr" in key:
-                c= handleCorrFeat(sluiceType, key, corrVals, cand)
-                if isInitial:
-                    correlatesByCand[sluiceType][cand["sluiceId"]].append(c > 0)
-            else:
-                c = cand[key]               
-                if type(c) == type(True):
-                    c = int(c)
-                elif type(factor) == type([]):
-                    c = factor[0](c)
-                    factor = factor[1]
-                if debug_level > 1:
-                    print "scoring", key, c, factor
-            s += c * factor
-        return s
-
-
-    if debug_level > 1:
-        print "SLUICEID: ", candidateSet[0]["sluiceId"]
-    for c in candidateSet:
-        c["score"] = score(c)
-        if debug_level > 1:
-            print c["text"]
-            print c["score"]
-
-    cands = sorted(candidateSet, key=lambda x: x["score"])
-    if debug_level > 1:
-        print "chosen", cands[-1]["text"]
-
-    return (cands[-1], cands)
-
-def computePrecRec(chosen,correct):
-    
-    def getToks(s):
-        c = Counter(s.split(" "))
-        return c
+    tot = 0        
     try:
-        ChToks = getToks(chosen["text"])
-        CoToks = getToks(correct["text"])
-        DiffToks = ChToks-CoToks
-        totChToks = sum(ChToks.values())
-        totCoToks = sum(CoToks.values())
-        totDiffToks = sum(DiffToks.values())
-        totInToks = totChToks-totDiffToks
+        for lookup in mapping[sluiceType]:
+            v = len(corrVals[lookup])
+            tot += v
+    except KeyError:
+        return tot
     
-        p = float(totInToks)/totChToks
-        r = float(totInToks)/totCoToks
+    return tot
+        
+def score(candidate, lambdas):
+    score = 0
+    sluiceType = candidate["sluiceType"]
+    correlations = candidate["corrEls"]
+    
+    for key, factor in lambdas.items():
+        if "Corr" in key:
+            weight = handleCorrFeat(sluiceType, key, correlations, candidate)
+            if isInitial:
+                correlatesByCand[sluiceType][candidate["sluiceId"]].append(weight > 0)
+        else:
+            weight = candidate[key]               
+            if type(weight) == type(True):
+                weight = int(weight)
+            elif type(factor) == type([]):
+                weight = factor[0](weight)
+                factor = factor[1]
+            if debug_level > 1:
+                print "scoring", key, weight, factor
+        score += weight * factor
+    return score
+
+
+debugGlobal = 0
+def debug(message, level)
+    if debugGlobal >  level:
+         print message
+
+def computeBest(candidates, lambdas):    
+    debug("Computing best for sluiceId: " + candidates[0]["sluiceId"], 1)
+    for candidate in candidates:
+        candidate["score"] = score(lambdas, candidate)
+        debug("Scored " + candidate["score"] + ": " + candidate["text"], 1)
+
+    candidates = sorted(candidates, key=lambda x: x["score"])
+    debug("Chose:" + candidates[-1]["text"], 1)
+
+    return (candidates[-1], candidates)
+
+
+def computeStats(chosen, correct):    
+    try:
+        chosenTokens = Counter(chosen["text"].split(" "))
+        correctTokens = Counter(correct["text"].split(" "))
+        totalChosenTokens = sum(chosenTokens.values())
+        totalCorrectTokens = sum(correctTokens.values())
+        
+        deltaTokens = chosenTokens - correctTokens
+        totalDeltaTokens = sum(deltaTokens.values())
+        overlap = totalChosenTokens-totalDeltaTokens
+    
+        precision = float(overlap)/totalChosenTokens
+        recall = float(overlap)/totalCorrectTokens
     except:
         pdb.set_trace()
         
     try:
-        f = 2*r*p/(p+r)
+        f = 2 * recall * precision / (precision + recall)
     except:
         f = 0.0
-    return (p,r,f)
-    
+
+    return (precision, recall, f)
+
+
 def predictAntecedent(features, lambdas):
     allScores = {}
-    successAndFailure = []
-    totPrecRec = {"p": 0.0, "r": 0.0, "f": 0.0, "tot": 0}
+    totalStats = {"p": 0.0, "r": 0.0, "f": 0.0, "total": 0}
+    
     successesByType = defaultdict(lambda: defaultdict(int))
     failuresByType = defaultdict(lambda: defaultdict(int))
-    
+    statsBySentence = []
     for x in range(0,2):
         d = {"right": 0, "wrong": 0, "sameSentence": 0, "onlyoneCandSet": 0, "onlyoneCandSetInCorrectSent": 0, "overlapDiff": 0}
-        successAndFailure.append(d)
+        statsBySentence.append(d)
     
-    for sluiceId, candidateSet in features.items():
-        correct = getCorrect(candidateSet)
+    for sluiceId, candidates in features.items():
+        correct = getAntecedent(candidates)
         sluiceType = correct["sluiceType"]
-        corrType = correct["corrType"]
+        correlateType = correct["corrType"]
         correctSentence = correct["sentence"]
 
         try:
-            overlapUsed = False
-            chosen, candSet = computeBest(candidateSet, lambdas)
+            chosen, candidates = computeBest(candidates, lambdas)
 
             if  (chosen["sluiceCandidateOverlap"] - correct["sluiceCandidateOverlap"]) < 0:
-                successAndFailure[correctSentence]["overlapDiff"] += 1
-            if len(candSet) == 1:
-                successAndFailure[correctSentence]["onlyoneCandSet"] += 1
-            
-            if len(filter(lambda x: x["sentence"] == correctSentence, candSet)) == 1:
-                successAndFailure[correctSentence]["onlyoneCandSetInCorrectSent"] += 1
-                
+                statsBySentence[correctSentence]["overlapDiff"] += 1
+            if len(candidates) == 1:
+                statsBySentence[correctSentence]["onlyoneCandSet"] += 1
+            if len(filter(lambda x: x["sentence"] == correctSentence, candidates)) == 1:
+                statsBySentence[correctSentence]["onlyoneCandSetInCorrectSent"] += 1
             if chosen["sentence"] == correctSentence:
-                successAndFailure[correctSentence]["sameSentence"] += 1
-                
-                
+                statsBySentence[correctSentence]["sameSentence"] += 1
             if chosen["isAntecedent"]:
-                successAndFailure[correctSentence]["right"] += 1
-                successesByType[sluiceType][corrType] +=1
-                
-                if debug_level > 1:
-                    print "***Correct", sluiceId, chosen["text"], chosen["distanceFromSluice"], chosen["backwards"]
+                statsBySentence[correctSentence]["right"] += 1
+                successesByType[sluiceType][correlateType] +=1
+                debug("---------CORRECT----------", 1)
+                debug("Id " + sluiceId + ": " + chosen["text"] + " " + chosen["distanceFromSluice"] + " " + chosen["backwards"], 1)
+                debug("--------------------------", 1)
             else:
-                successAndFailure[correctSentence]["wrong"] += 1
-                failuresByType[sluiceType][corrType] +=1
-                if debug_level > 1:
-                    print "***Wrong", sluiceId, chosen["text"], "||", correct["text"], "||", chosen["sluiceLineText"],chosen["distanceFromSluice"], chosen["backwards"]
-            #p,r,f = computePrecRec(chosen,correct)
+                statsBySentence[correctSentence]["wrong"] += 1
+                failuresByType[sluiceType][correlateType] +=1
+                debug("---------WRONG----------", 1)
+                debug("Id " + sluiceId + ": " + chosen["text"], 1)
+                debug("Antecedent: " + correct["text"], 1)
+                debug("Sluice: " + chosen["sluiceLineText"] + " " + chosen["distanceFromSluice"] + " " + chosen["backwards"], 1)
+                debug("--------------------------", 1)
+                
+            #p,r,f = computeStats(chosen,correct)
             p,r,f = chosen["antePRF"]
-            totPrecRec["p"] += p
-            totPrecRec["r"] += r
-            totPrecRec["f"] += f
-            totPrecRec["tot"] += 1
+            totalStats["p"] += p
+            totalStats["r"] += r
+            totalStats["f"] += f
+            totalStats["total"] += 1
             
         except Exception, e:
-            print >> sys.stderr,"ERROR!!"
-            traceback.print_exc(file=sys.stderr)
+            print "Error in antecedent prediction computation for " + sluiceId
+            traceback.print_exc(file=sys.stdout)
             continue
+
     for x in range(0,2):
-        successAndFailure[x]["total"] = successAndFailure[x]["wrong"] + successAndFailure[x]["right"]
-    allScores["prevSame"] = {"prev": successAndFailure[0], "same": successAndFailure[1]}
-    allScores["p"] = totPrecRec["p"]/totPrecRec["tot"]
-    allScores["r"] = totPrecRec["r"]/totPrecRec["tot"]
-    allScores["f"] = totPrecRec["f"]/totPrecRec["tot"]
-    allScores["acc"] = float(allScores["prevSame"]["prev"]["right"]+allScores["prevSame"]["same"]["right"])/(allScores["prevSame"]["prev"]["total"]+allScores["prevSame"]["same"]["total"])
-    allScores["sucFail"] = (successesByType, failuresByType)
+        statsBySentence[x]["total"] = statsBySentence[x]["wrong"] + statsBySentence[x]["right"]
+    
+    allScores["prevSame"] = {"prev": statsBySentence[0], "same": statsBySentence[1]}
+    allScores["p"] = totalStats["p"]/totalStats["total"]
+    allScores["r"] = totalStats["r"]/totalStats["total"]
+    allScores["f"] = totalStats["f"]/totalStats["total"]
+    allScores["accuracy"] = float(allScores["prevSame"]["prev"]["right"] + allScores["prevSame"]["same"]["right"]) / (allScores["prevSame"]["prev"]["total"] + allScores["prevSame"]["same"]["total"])
+    allScores["statsByType"] = (successesByType, failuresByType)
     return allScores
 
 def randomStart():
@@ -411,7 +337,7 @@ def optimize(features, iterations = 100, restarts=10, maxIncr=30):
         return scoreStr["f"]
 
     def getAcc(scoreStr):
-        return scoreStr["acc"]
+        return scoreStr["accuracy"]
         
 #    lMax = Lambdas
 
@@ -459,7 +385,7 @@ def optimize(features, iterations = 100, restarts=10, maxIncr=30):
             restartMaxScore = maxScore
             restartMax = lMax
             restartMaxScoreStr = maxScoreStr
-                    
+                   
     return restartMax, restartMaxScoreStr
 
 def optimize_org(features, iterations = 10, maxIncr=30):
@@ -485,7 +411,7 @@ def optimize_org(features, iterations = 10, maxIncr=30):
         return scoreStr["f"]
 
     def getAcc(scoreStr):
-        return scoreStr["acc"]
+        return scoreStr["accuracy"]
         
     lMax = Lambdas
 #   lMax = randomStart()
@@ -496,14 +422,14 @@ def optimize_org(features, iterations = 10, maxIncr=30):
         print "Iteration", it
         field = makeLambdaField(lMax, incr = maxIncr/float(it+1))
         print "Lmax:", 
-        fldPrint(lMax)
+        lambdaPrint(lMax)
         print "MaxScore:",maxScore
         for l in field:
             scoreStr = predictAntecedent(features,l)
             curScore = getAcc(scoreStr)
             if debug_level > 0:
                 print "Lambdas:", 
-                fldPrint(l)
+                lambdaPrint(l)
                 print curScore
 
             if maxScore == None or curScore > maxScore:
@@ -551,13 +477,12 @@ def printSF(sucF):
     #         print '\t'.join([str(s), str(c), str(h[c])])
 
 
-def fldPrint(l):
-    for k in sorted(l.keys()):
-        if type(l[k]) == type([]):
-            print k, ": ", l[k][1],
+def lambdaPrint(lambdas):
+    for k in sorted(lambdas.keys()):
+        if type(lambdas[k]) == type([]):
+            debug("\t\t" + k + ":\t" + lambdas[k][1], 0)
         else:
-            print k, ": ", l[k],
-    print 
+            debug("\t\t" + k + ":\t" + lambdas[k], 0)
 
 def fldValsPrint(l):
     for k in sorted(l.keys()):
@@ -579,57 +504,54 @@ def delta(d1, d2):
                 del d1[k]
     return d1
         
+
+
+####### ---->
+###         ------------>
+###     LET'S GO        ----------->
+###         ------------>
+####### ---->
 if __name__ == '__main__':
     import argparse
-    
     parser = argparse.ArgumentParser(description='Take file of features (as jsons) as compute antecedent.')
-    parser.add_argument('-debug', metavar='debug', type=int, 
-                       help='debug level')
-
-    parser.add_argument('-optimize', metavar='optimize', type=int, 
-                       help='optimize switch')
-
-    parser.add_argument('-restarts', metavar='restarts', type=int, 
-                       help='number of random restarts')
-
-    parser.add_argument('-iterations', metavar='iterations', type=int, 
-                       help='number of iterations in hill-climbing')
-
-    parser.add_argument('featuref', metavar='featuref', type=str, 
-                       help='the featurefile')
+    parser.add_argument('-debug', metavar='debug', type=int, help='debug level')
+    parser.add_argument('-optimize', metavar='optimize', type=int, help='optimize switch')
+    parser.add_argument('-restarts', metavar='restarts', type=int, help='number of random restarts')
+    parser.add_argument('-iterations', metavar='iterations', type=int, help='number of iterations in hill-climbing')
+    parser.add_argument('featuref', metavar='featuref', type=str, help='the featurefile')
                        
     args = parser.parse_args()
-    optimize_switch = 1
-    debug_level = 0
     features = loadData(args.featuref)
-
+       
+    debugGlobal = 0
     if args.debug:
-        debug_level = args.debug
+        debugGlobal = args.debug
 
+    optimize_switch = 1
     if args.optimize:
         optimize_switch = 1
 
+    restarts = 1
     if args.restarts:
         restarts = args.restarts
-    else:
-        restarts = 1
-
+    
+    iterations = 100
     if args.iterations:
         iterations = args.iterations
-    else:
-        iterations = 100
 
-    print "starting lambdas:"
-    fldPrint(Lambdas)
+    debug("Starting Lambdas: ", 0)
+    lambdaPrint(Lambdas)
+    debug("--------------------", 0)
 
-    normalizeVals(features)
+    # preprocess features
+    normaliseFeatures(features)
     modifyFeatures(features)
 
-    scoreStr = predictAntecedent(features,Lambdas)
+    currentScore = predictAntecedent(features, Lambdas)
     isInitial = False
-    print "Initial Score: ",scoreStr
+    print "Initial Score: ", currentScore
 
-    sF = scoreStr["sucFail"]
+    sF = currentScore["statsByType"]
     
     printSF(sF)
     printNumCorrs()
@@ -638,6 +560,7 @@ if __name__ == '__main__':
         lambdas, scoreStr = optimize(features, iterations=iterations,restarts=restarts)
         print delta(lambdas, Lambdas)
         print "Score: ", scoreStr
+
 
 
 
