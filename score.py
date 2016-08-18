@@ -19,56 +19,56 @@ def getFirst(x):
 
 # best parameter intialisation
 Lambdas = {
-    # "lmScore": 3.41,
-    # "ngram2": 0.58,
-    # "ngram3": 2.02,
-    # "w2vMaxSimilarity": -0.31,
-    # "w2vMainPredicate": 1,
-    "w2vPredicates": 2.1,
-    # "distanceFromSluice": -.92,
-    # "sluiceCandidateOverlap": 1.37, 
-    # "backwards": -1.12,
-    # "WH_gov_npmi": [getFirst,2.65], #[first] 
-    # "containsSluice": -4.44,
-    # "isDominatedBySluice": -10,
-    # "isInRelClause": -1.40,
-    # "isInParenthetical": -2.4,
-    # "coordWithSluice": -.46,
-    # "immedAfterCataphoricSluice": 2.13,
-    # "afterInitialSluice": -1.85,
-    # "sluiceInCataphoricPattern": -1.03,
-    # "LocativeCorr": 0,
-    # "EntityCorr": 0,
-    # "TemporalCorr": 0,
-    # "DegreeCorr": 0,
-    # "WhichCorr": 0
+    "lmScore": 0.41000000000000014,
+    # "ngram2": 2.0226460981333387,
+    # "ngram3": -4.02,
+    # "w2vMaxSimilarity": 13.916601717798212,
+    # "w2vMainPredicate": 2,
+    # "w2vPredicates": 2.9,
+    "distanceFromSluice": -12.327448713915892,
+    "sluiceCandidateOverlap": 14.201067811865475, 
+    "backwards": -10.218934190276816,
+    "WH_gov_npmi": [getFirst, 3.35], #[first] 
+    "containsSluice": -23.254901371783898,
+    "isDominatedBySluice": -17.593772622463412,
+    "isInRelClause": -30.191687986644894,
+    "isInParenthetical": -24.6,
+    "coordWithSluice": 17.780508075688775,
+    "immedAfterCataphoricSluice": 12.870000000000001,
+    "afterInitialSluice": -19.855594375177297,
+    "sluiceInCataphoricPattern": -1.03,
+    "LocativeCorr": 2.5465367070797713,
+    "EntityCorr": 5.276068751089989,
+    "TemporalCorr": 6.745966692414833,
+    "DegreeCorr": 1,
+    "WhichCorr": 2
 }
 
 # subset of lambdas participating in hill climbing
 ChangeLambdas = {
-    # "lmScore": 10,
+    "lmScore": 10,
     # "ngram2": 10,
     # "ngram3": 10,
     # "w2vMaxSimilarity": -0.5,
     # "w2vMainPredicate": 2,
-    "w2vPredicates": 2,
-    # "distanceFromSluice": -1,
-    # "sluiceCandidateOverlap": 1, 
-    # "backwards": -1,
-    # "WH_gov_npmi": [getFirst,0.5], #[first] 
-    # "containsSluice": -10,
-    # "isDominatedBySluice": -10,
-    # "isInRelClause": -10,
-    # "isInParenthetical": -10,
-    # "coordWithSluice": 0,
-    # "immedAfterCataphoricSluice": 10,
-    # "afterInitialSluice": -10,
-    # "sluiceInCataphoricPattern": 0,
-    # "LocativeCorr": 0,
-    # "EntityCorr": 0,
-    # "TemporalCorr": 0,
-    # "DegreeCorr": 0,
-    # "WhichCorr": 0
+    # "w2vPredicates": 2,
+    "distanceFromSluice": -1,
+    "sluiceCandidateOverlap": 1, 
+    "backwards": -1,
+    "WH_gov_npmi": [getFirst,0.5], #[first] 
+    "containsSluice": -10,
+    "isDominatedBySluice": -10,
+    "isInRelClause": -10,
+    "isInParenthetical": -10,
+    "coordWithSluice": 0,
+    "immedAfterCataphoricSluice": 10,
+    "afterInitialSluice": -10,
+    "sluiceInCataphoricPattern": 0,
+    "LocativeCorr": 0,
+    "EntityCorr": 0,
+    "TemporalCorr": 0,
+    "DegreeCorr": 0,
+    "WhichCorr": 0
 }
 
 

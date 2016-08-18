@@ -2,6 +2,8 @@ import kenlm
 import json
 import collections
 from nltk import pos_tag, word_tokenize
+from nltk.tree import Tree as tree
+from nltk.parse.stanford import StanfordParser
 from gensim.models import Word2Vec as w2v
 
 from lib.data import loadData, saveData, tableFromData
@@ -16,7 +18,7 @@ if __name__ == '__main__':
 	#	"lm": on/off
 	#	"pos": [leastNgram, highestNgram]
 	# 	"w2v": on/off
-	config = { "lm": 0, "pos": 0, "w2v": 1 }
+	config = { "lm": 1, "pos": 0, "w2v": 0 }
 
 	# setup parser and parse args
 	parser = argparse.ArgumentParser(description='Transforms the sluice example data adding or removing features')
@@ -32,33 +34,89 @@ if __name__ == '__main__':
 	# ---------------------------------------------------------------
 	if config["lm"] != 0: 
 		# load language model
-		lmModel = kenlm.Model('models/standard.arpa')
+		lmModel = kenlm.Model('models/trained3.arpa')
 
-		# run through all examples
-		for sluiceId in examples:
-			for sentence in examples[sluiceId]:
-					# form sentence to pitch against
-					# the language model 
-					candidate = sentence["text"]
-					sluice = sentence["sluiceGovVPText"]
-					pitch = sluice + " " + candidate;
-					pitch = pitch.split(" ");
-					pitch = " ".join(pitch[0:len(sluice.split(" ")) + min(5, len(candidate.split(" ")))])
+		# run through all examples and write stats
+		with open("stats/lm-scores.stat", "w") as fp:
+			counts = {"npCorrect": 0, "npWrong": 0, "correct": 0, "wrong": 0, "npAntecedents": 0, "antecedents": 0}
+			for sluiceId in examples:
+				fp.write(examples[sluiceId][0]["text"] + "\n")
 
-					# calculate the probability for the 
-					# pitch sentence usin the KenLM.
-					# Consider switiching to a better
-					# language model.
-					sentence["lmScore"] = lmModel.score(pitch.lower(), bos=False, eos=False)
+				bestSentence = {"score": -1000, "sentence": ''}
+				for sentence in examples[sluiceId]:
+						# form sentence to pitch against
+						# the language model 
+						candidate = sentence["text"]
+						sluice = sentence["sluiceGovVPText"]
+						pitch = sluice + " " + candidate;
+						candidatePitch = candidate.split(" ")[0 : min(4, len(candidate.split(" ")))]
+						pitch = pitch.split(" ");
+						pitch = " ".join(pitch[0:len(sluice.split(" ")) + min(4, len(candidate.split(" ")))])
 
-		# write stats to file
+						# calculate the probability for the 
+						# pitch sentence usin the KenLM.
+						# Consider switiching to a better
+						# language model.
+						sentence["lmScore"] = lmModel.score(pitch.lower(), bos=False, eos=False) / len(pitch.split(" "))
+
+						# prepare noun phrase stats
+						if (sentence["lmScore"] > bestSentence["score"]):
+							bestSentence["score"] = sentence["lmScore"]
+							bestSentence["tree"] = tree.fromstring(sentence["anteOffsets"]["lineText"]["tree"])
+							bestSentence["sentence"] = candidate
+							bestSentence["antecedent"] = sentence["isAntecedent"]
+						if sentence["isAntecedent"]:
+							isNp = False
+							for subtree in tree.fromstring(sentence["anteOffsets"]["lineText"]["tree"]).subtrees(filter = lambda x: x.label() == "NP"): # Generate all subtrees
+							 	if subtree.leaves()[0] == bestSentence["sentence"].split(" ")[0]:
+							 		counts["npAntecedents"] += 1
+							 		isNp = True
+							 		break
+							if not isNp:
+								counts["antecedents"] += 1
+
+						# write example stats
+						fp.write(str(sentence["lmScore"]) + ": " + pitch.lower() + " ")
+						if(sentence["isAntecedent"]):
+							fp.write("<----- Antecedent") 
+						if(sentence["containsSluice"]):
+							fp.write("<----- Contains Sluice") 
+						fp.write("\n")
+				fp.write("\n");
+
+				# make noun phrase stats
+				isNp = False
+				for subtree in bestSentence["tree"].subtrees(filter = lambda x: x.label() == "NP"): # Generate all subtrees
+				 	if subtree.leaves()[0] == bestSentence["sentence"].split(" ")[0]:
+				 		isNp = True
+				 		if bestSentence["antecedent"]:
+				 			counts["npCorrect"] += 1
+				 		else:
+				 			counts["npWrong"] += 1
+				 		break
+				if not isNp:
+					if bestSentence["antecedent"]:
+						counts["correct"] += 1
+					else:
+						counts["wrong"] += 1 
+
+		# write np count stats to file
+		with open("stats/lm-np-counts.stat", "w") as fp:
+			fp.write("Selected Noun Phrases (correct): " + str(counts["npCorrect"]) + "\n")
+			fp.write("Selected Noun Phrases (wrong): " + str(counts["npWrong"]) + "\n")
+			fp.write("Selected Non-Noun Phrases (correct): " + str(counts["correct"]) + "\n")
+			fp.write("Selected Non-Noun Phrases (wrong): " + str(counts["wrong"]) + "\n")
+			fp.write("Antecedent Noun Phrases: " + str(counts["npAntecedents"]) + "\n")
+			fp.write("Antecedent Non-Noun Phrases: " + str(counts["antecedents"]) + "\n")
+
+		# write oov stats to file
 		with open("stats/lm-oov-counts.stat", "w") as fp:
 			oovs = collections.Counter()
 			for sluiceId in examples:
 				sentenceNum = 0
 				for sentence in examples[sluiceId]:
-					words = word_tokenize(sentence["text"])
-					for word in words[0:min(5, len(words))]:
+					words = word_tokenize(sentence["text"].lower())
+					for word in words[0:min(4, len(words))]:
 						if word not in lmModel:
 							if word not in oovs:
 								oovs[word] = 1
@@ -68,6 +126,7 @@ if __name__ == '__main__':
 			for common in oovs.most_common():
 				line = common[0] + ", " + str(common[1]) + "\n"
 				fp.write(line)
+
 
 
 					
@@ -101,7 +160,7 @@ if __name__ == '__main__':
 		# into words and taking the max
 		def getSluiceSimilarity(word, sluice):
 			similarity = -1
-			word = [x.lower() for x in word]
+			word = [x.lower() for x in word] if isinstance(word, list) else word.lower()
 			sluice = [x.lower() for x in sluice.split(" ")]
 			try: 
 				similarity = model.n_similarity(sluice, word)
